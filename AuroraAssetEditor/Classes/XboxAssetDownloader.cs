@@ -55,9 +55,9 @@ namespace AuroraAssetEditor.Classes {
             var wc = new WebClient();
             var data = Encoding.UTF8.GetString(wc.DownloadData("http://www.xbox.com/Shell/ChangeLocale")).Split('>');
             for(var i = 0; i < data.Length; i++) {
-                if(!data[i].ToLower().Contains("?targetlocale="))
+                if(!data[i].ToLower().Contains("?source=lp"))
                     continue;
-                var index = data[i].ToLower().IndexOf("?targetlocale=", StringComparison.Ordinal) + 14;
+                var index = data[i].ToLower().IndexOf("\"pid\":", StringComparison.Ordinal) + 7;
                 var id = data[i].Substring(index);
                 index = id.IndexOf('"');
                 if(index <= 0)
@@ -67,6 +67,7 @@ namespace AuroraAssetEditor.Classes {
                     continue;
                 var name = data[i + 1];
                 name = name.Substring(0, name.IndexOf("</a", StringComparison.Ordinal));
+                name = name.Trim('\r','\n',' ');
                 name = HttpUtility.HtmlDecode(name);
                 ret.Add(new XboxLocale(id, name));
                 tmp.Add(id);
