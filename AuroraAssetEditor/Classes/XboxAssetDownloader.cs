@@ -16,6 +16,7 @@ namespace AuroraAssetEditor.Classes {
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Web;
     using System.Xml;
 
@@ -53,23 +54,20 @@ namespace AuroraAssetEditor.Classes {
             var ret = new List<XboxLocale>();
             var tmp = new List<string>();
             var wc = new WebClient();
-            var data = Encoding.UTF8.GetString(wc.DownloadData("http://www.xbox.com/Shell/ChangeLocale")).Split('>');
-            for(var i = 0; i < data.Length; i++) {
-                if(!data[i].ToLower().Contains("?targetlocale="))
+            // Enable TLS 1.2 (3072) security protocol
+            // https://docs.microsoft.com/en-us/dotnet/api/system.net.securityprotocoltype?view=net-6.0
+            System.Net.ServicePointManager.SecurityProtocol |= (SecurityProtocolType)(3072);
+            string data = Encoding.UTF8.GetString(wc.DownloadData("https://www.xbox.com/en-US/Shell/ChangeLocale"));
+            string search = @"<a.*?href=""/(.+?)/\?source=lp"".*?>(.+?)</a>";
+            MatchCollection matches = Regex.Matches(data, search);
+            foreach (Match m in matches) {
+                if (m.Groups.Count != 3) {
                     continue;
-                var index = data[i].ToLower().IndexOf("?targetlocale=", StringComparison.Ordinal) + 14;
-                var id = data[i].Substring(index);
-                index = id.IndexOf('"');
-                if(index <= 0)
-                    continue;
-                id = id.Substring(0, index);
-                if(tmp.Contains(id))
-                    continue;
-                var name = data[i + 1];
-                name = name.Substring(0, name.IndexOf("</a", StringComparison.Ordinal));
+                }
+                var id = m.Groups[1].ToString().Trim();
+                var name = m.Groups[2].ToString().Trim();
                 name = HttpUtility.HtmlDecode(name);
                 ret.Add(new XboxLocale(id, name));
-                tmp.Add(id);
             }
             ret.Sort((l1, l2) => string.CompareOrdinal(l1.ToString(), l2.ToString()));
             return ret.ToArray();
