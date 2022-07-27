@@ -16,6 +16,7 @@ namespace AuroraAssetEditor.Classes {
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Web;
     using System.Xml;
 
@@ -53,24 +54,20 @@ namespace AuroraAssetEditor.Classes {
             var ret = new List<XboxLocale>();
             var tmp = new List<string>();
             var wc = new WebClient();
-            var data = Encoding.UTF8.GetString(wc.DownloadData("http://www.xbox.com/Shell/ChangeLocale")).Split('>');
-            for(var i = 0; i < data.Length; i++) {
-                if(!data[i].ToLower().Contains("?source=lp"))
+            // Enable TLS 1.2 (3072) security protocol
+            // https://docs.microsoft.com/en-us/dotnet/api/system.net.securityprotocoltype?view=net-6.0
+            System.Net.ServicePointManager.SecurityProtocol |= (SecurityProtocolType)(3072);
+            string data = Encoding.UTF8.GetString(wc.DownloadData("https://www.xbox.com/en-US/Shell/ChangeLocale"));
+            string search = @"<a.*?href=""/(.+?)/\?source=lp"".*?>(.+?)</a>";
+            MatchCollection matches = Regex.Matches(data, search);
+            foreach (Match m in matches) {
+                if (m.Groups.Count != 3) {
                     continue;
-                var index = data[i].ToLower().IndexOf("\"pid\":", StringComparison.Ordinal) + 7;
-                var id = data[i].Substring(index);
-                index = id.IndexOf('"');
-                if(index <= 0)
-                    continue;
-                id = id.Substring(0, index);
-                if(tmp.Contains(id))
-                    continue;
-                var name = data[i + 1];
-                name = name.Substring(0, name.IndexOf("</a", StringComparison.Ordinal));
-                name = name.Trim('\r','\n',' ');
+                }
+                var id = m.Groups[1].ToString().Trim();
+                var name = m.Groups[2].ToString().Trim();
                 name = HttpUtility.HtmlDecode(name);
                 ret.Add(new XboxLocale(id, name));
-                tmp.Add(id);
             }
             ret.Sort((l1, l2) => string.CompareOrdinal(l1.ToString(), l2.ToString()));
             return ret.ToArray();
@@ -180,96 +177,6 @@ namespace AuroraAssetEditor.Classes {
             XboxAssetDownloader.SendStatusChanged("Finished parsing Title/Asset info...");
         }
 
-        private static void ParseHtml(string url, XboxTitleInfo titleInfo)
-        {
-            XboxAssetDownloader.SendStatusChanged("Parsing Title/Asset info...");
-            var ret = new List<XboxAssetInfo>();
-
-            try
-            {
-                var wc = new WebClient();
-                var tmp = new List<string>();
-                var data = Encoding.UTF8.GetString(wc.DownloadData(url)).Split('>');
-                for (var i = 0; i < data.Length; i++)
-                {
-                    //game title
-                    if (data[i].ToLower().Contains("div id=\"gamedetails\""))
-                    {
-                        var name = data[i + 1];
-                        if (name.ToLower().Contains("<h1"))
-                        {
-                            name = data[i + 2];
-                            titleInfo.Title = name.Substring(0, name.Length - 4);
-                        }
-                    }
-
-                    //banner image
-                    if (data[i].ToLower().Contains("bannerimage.src = "))
-                    {
-                        var index = data[i].ToLower().IndexOf("http\\x3a", StringComparison.Ordinal);
-                        if (index > 0)
-                        {
-                            var index_end = data[i].ToLower().IndexOf("banner.png';", index, StringComparison.Ordinal);
-                            if (index_end > 0)
-                            {
-                                var name = data[i].Substring(index, index_end - index + 10);
-                                name = name.Replace("\\x3a", ":");
-                                name = name.Replace("\\x2f","/");
-                                var banner_url = new Uri(name);
-                                ret.Add(new XboxAssetInfo(banner_url, XboxAssetType.Banner, titleInfo));
-                            }
-                        }
-                    }
-
-                    //background image
-                    if (data[i].ToLower().Contains("style=\\\"background-image: url("))
-                    {
-                        var index = data[i].ToLower().IndexOf("style=\\\"background-image: url(", StringComparison.Ordinal) + 30;
-                        if (index > 0)
-                        {
-                            var index_end = data[i].ToLower().IndexOf("background.jpg", index, StringComparison.Ordinal);
-                            if (index_end > 0)
-                            {
-                                var name = data[i].Substring(index, index_end - index + 14);
-                                var backgr_url = new Uri(name);
-                                ret.Add(new XboxAssetInfo(backgr_url, XboxAssetType.Background, titleInfo));
-                            }
-                        }
-                    }
-
-                    //screenshots
-                    if (data[i].ToLower().Contains("div id=\"mediacontrol\" class=\"grid-18"))
-                    {
-                        int w = i + 1, n = 0;
-                        while (data[w + n].ToLower().Contains("div id=\"image"))
-                        {
-                            var index = data[w + n + 1].ToLower().IndexOf("http://", StringComparison.Ordinal);
-                            if (index > 0)
-                            {
-                                var index_end = data[w + n + 1].ToLower().IndexOf("screenlg", index, StringComparison.Ordinal);
-                                if (index_end > 0)
-                                {
-                                    index_end = data[w + n + 1].ToLower().IndexOf(".jpg", index_end, StringComparison.Ordinal);
-                                    var name = data[w + n + 1].Substring(index, index_end - index + 4);
-
-                                    var screen_url = new Uri(name);
-                                    ret.Add(new XboxAssetInfo(screen_url, XboxAssetType.Screenshot, titleInfo));
-                                }
-                            }
-                            n += 3;
-                        }
-                        i = w + n;
-                    }
-                    
-
-                }
-            }
-            catch {  }
-
-            titleInfo.AssetsInfo = ret.ToArray();
-            XboxAssetDownloader.SendStatusChanged("Finished parsing Title/Asset info...");
-        }
-
         public static XboxTitleInfo FromTitleId(uint titleId, XboxLocale locale) {
             var ret = new XboxTitleInfo {
                                             TitleId = string.Format("{0:X08}", titleId),
@@ -278,13 +185,11 @@ namespace AuroraAssetEditor.Classes {
             var wc = new WebClient();
             var url =
                 string.Format(
-//                              "http://catalog.xboxlive.com/Catalog/Catalog.asmx/Query?methodName=FindGames&Names=Locale&Values={0}&Names=LegalLocale&Values={0}&Names=Store&Values=1&Names=PageSize&Values=100&Names=PageNum&Values=1&Names=DetailView&Values=5&Names=OfferFilterLevel&Values=1&Names=MediaIds&Values=66acd000-77fe-1000-9115-d802{1:X8}&Names=UserTypes&Values=2&Names=MediaTypes&Values=1&Names=MediaTypes&Values=21&Names=MediaTypes&Values=23&Names=MediaTypes&Values=37&Names=MediaTypes&Values=46",
-                                "http://marketplace.xbox.com/{0}/Product/66acd000-77fe-1000-9115-d802{1:X8}",                
+                              "http://catalog-cdn.xboxlive.com/Catalog/Catalog.asmx/Query?methodName=FindGames&Names=Locale&Values={0}&Names=LegalLocale&Values={0}&Names=Store&Values=1&Names=PageSize&Values=100&Names=PageNum&Values=1&Names=DetailView&Values=5&Names=OfferFilterLevel&Values=1&Names=MediaIds&Values=66acd000-77fe-1000-9115-d802{1:X8}&Names=UserTypes&Values=2&Names=MediaTypes&Values=1&Names=MediaTypes&Values=21&Names=MediaTypes&Values=23&Names=MediaTypes&Values=37&Names=MediaTypes&Values=46",
                               locale.Locale, titleId);
             XboxAssetDownloader.SendStatusChanged("Downloading title/asset information...");
-//            using(var stream = new MemoryStream(wc.DownloadData(url)))
-//                ParseXml(stream, ret);
-                  ParseHtml(url, ret);
+            using(var stream = new MemoryStream(wc.DownloadData(url)))
+                ParseXml(stream, ret);
             return ret;
         }
 
