@@ -3,6 +3,8 @@ A Graphical editor for Aurora's .asset files
 
 There will be more features added to this tool as i find the time to do so, first version only supports reading/writing Aurora .asset files
 
+[![Build status](https://ci.appveyor.com/api/projects/status/fgyi4apg6s5yp4nl?svg=true)](https://ci.appveyor.com/project/swizzy/auroraasseteditor)
+
 A Huge thanks goes out to MaesterRowen for explaining the format for me, and also for making the AuroraAsset.dll library which handles the image conversion (between D3DTexture and Bitmap)
 Many thanks also goes to Mattie for the placeholder images :)
 
