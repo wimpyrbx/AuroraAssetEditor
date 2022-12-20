@@ -16,7 +16,6 @@ namespace AuroraAssetEditor.Classes {
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
     using System.Text;
-    using System.Text.RegularExpressions;
     using System.Web;
     using System.Xml;
 
@@ -51,26 +50,60 @@ namespace AuroraAssetEditor.Classes {
 
         public static XboxLocale[] GetLocales() {
             try {
-            var ret = new List<XboxLocale>();
-            var tmp = new List<string>();
-            var wc = new WebClient();
-            // Enable TLS 1.2 (3072) security protocol
-            // https://docs.microsoft.com/en-us/dotnet/api/system.net.securityprotocoltype?view=net-6.0
-            System.Net.ServicePointManager.SecurityProtocol |= (SecurityProtocolType)(3072);
-            string data = Encoding.UTF8.GetString(wc.DownloadData("https://www.xbox.com/en-US/Shell/ChangeLocale"));
-            string search = @"<a.*?href=""/(.+?)/\?source=lp"".*?>(.+?)</a>";
-            MatchCollection matches = Regex.Matches(data, search);
-            foreach (Match m in matches) {
-                if (m.Groups.Count != 3) {
-                    continue;
-                }
-                var id = m.Groups[1].ToString().Trim();
-                var name = m.Groups[2].ToString().Trim();
-                name = HttpUtility.HtmlDecode(name);
-                ret.Add(new XboxLocale(id, name));
-            }
-            ret.Sort((l1, l2) => string.CompareOrdinal(l1.ToString(), l2.ToString()));
-            return ret.ToArray();
+                var ret = new List<XboxLocale>();
+                ret.Add(new XboxLocale("es-AR", "Argentina - Espa\xf1ol"));
+                ret.Add(new XboxLocale("pt-BR", "Brasil - Portugu\xeas"));
+                ret.Add(new XboxLocale("en-CA", "Canada - English"));
+                ret.Add(new XboxLocale("fr-CA", "Canada - Fran\xe7ais"));
+                ret.Add(new XboxLocale("es-CL", "Chile - Espa\xf1ol"));
+                ret.Add(new XboxLocale("es-CO", "Colombia - Espa\xf1ol"));
+                ret.Add(new XboxLocale("es-MX", "M\xe9xico - Espa\xf1ol"));
+                ret.Add(new XboxLocale("en-US", "United States - English"));
+                ret.Add(new XboxLocale("nl-BE", "Belgi\xeb - Nederlands"));
+                ret.Add(new XboxLocale("fr-BE", "Belgique - Fran\xe7ais"));
+                ret.Add(new XboxLocale("cs-CZ", "\u010cesk\xe1 Republika - \u010ce\u0161tina"));
+                ret.Add(new XboxLocale("da-DK", "Danmark - Dansk"));
+                ret.Add(new XboxLocale("de-DE", "Deutschland - Deutsch"));
+                ret.Add(new XboxLocale("es-ES", "Espa\xf1a - Espa\xf1ol"));
+                ret.Add(new XboxLocale("fr-FR", "France - Fran\xe7ais"));
+                ret.Add(new XboxLocale("en-IE", "Ireland - English"));
+                ret.Add(new XboxLocale("it-IT", "Italia - Italiano"));
+                ret.Add(new XboxLocale("hu-HU", "Magyarorsz\xe1g - Magyar"));
+                ret.Add(new XboxLocale("nl-NL", "Nederland - Nederlands"));
+                ret.Add(new XboxLocale("nb-NO", "Norge - Norsk bokm\xe5l"));
+                ret.Add(new XboxLocale("de-AT", "\xd6sterreich - Deutsch"));
+                ret.Add(new XboxLocale("pl-PL", "Polska - Polski"));
+                ret.Add(new XboxLocale("pt-PT", "Portugal - Portugu\xeas"));
+                ret.Add(new XboxLocale("de-CH", "Schweiz - Deutsch"));
+                ret.Add(new XboxLocale("sk-SK", "Slovensko - Sloven\u010dina"));
+                ret.Add(new XboxLocale("fr-CH", "Suisse - Fran\xe7ais"));
+                ret.Add(new XboxLocale("fi-FI", "Suomi - Suomi"));
+                ret.Add(new XboxLocale("sv-SE", "Sverige - Svenska"));
+                ret.Add(new XboxLocale("en-GB", "United Kingdom - English"));
+                ret.Add(new XboxLocale("el-GR", "\u0395\u03bb\u03bb\u03ac\u03b4\u03b1 - \u0395\u03bb\u03bb\u03b7\u03bd\u03b9\u03ba\u03ac"));
+                ret.Add(new XboxLocale("ru-RU", "\u0420\u043e\u0441\u0441\u0438\u044f - \u0420\u0443\u0441\u0441\u043a\u0438\u0439"));
+                ret.Add(new XboxLocale("en-AU", "Australia - English"));
+                ret.Add(new XboxLocale("en-HK", "Hong Kong SAR / Macao SAR - English"));
+                ret.Add(new XboxLocale("en-IN", "India - English"));
+                ret.Add(new XboxLocale("id-ID", "Indonesia - Bahasa Indonesia"));
+                ret.Add(new XboxLocale("en-MY", "Malaysia - English"));
+                ret.Add(new XboxLocale("en-NZ", "New Zealand - English"));
+                ret.Add(new XboxLocale("en-PH", "Philippines - English"));
+                ret.Add(new XboxLocale("en-SG", "Singapore - English"));
+                ret.Add(new XboxLocale("vi-VN", "Vi\u1ec7t Nam - Ti\xea\u0301ng vi\u1ec7t"));
+                ret.Add(new XboxLocale("th-TH", "\u0e44\u0e17\u0e22 - \u0e44\u0e17\u0e22"));
+                ret.Add(new XboxLocale("ko-KR", "\ub300\ud55c\ubbfc\uad6d - \ud55c\uad6d\uc5b4"));
+                ret.Add(new XboxLocale("zh-CN", "\u4e2d\u56fd - \u4e2d\u6587"));
+                ret.Add(new XboxLocale("zh-TW", "\u53f0\u7063 - \u7e41\u9ad4\u4e2d\u6587"));
+                ret.Add(new XboxLocale("ja-JP", "\u65e5\u672c - \u65e5\u672c\u8a9e"));
+                ret.Add(new XboxLocale("zh-HK", "\u9999\u6e2f\u7279\u5225\u884c\u653f\u5340/\u6fb3\u9580\u7279\u5225\u884c\u653f\u5340 - \u7e41\u9ad4\u4e2d\u6587"));
+                ret.Add(new XboxLocale("en-ZA", "South Africa - English"));
+                ret.Add(new XboxLocale("tr-TR", "T\xfcrkiye - T\xfcrk\xe7e"));
+                ret.Add(new XboxLocale("he-IL", "\u05d9\u05e9\u05e8\u05d0\u05dc - \u05e2\u05d1\u05e8\u05d9\u05ea"));
+                ret.Add(new XboxLocale("ar-AE", "\u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062a \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0645\u062a\u062d\u062f\u0629 - \u0627\u0644\u0639\u0631\u0628\u064a\u0629"));
+                ret.Add(new XboxLocale("ar-SA", "\u0627\u0644\u0645\u0645\u0644\u0643\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0633\u0639\u0648\u062f\u064a\u0629 - \u0627\u0644\u0639\u0631\u0628\u064a\u0629"));
+                ret.Sort((l1, l2) => string.CompareOrdinal(l1.ToString(), l2.ToString()));
+                return ret.ToArray();
             }
             catch { return new XboxLocale[0]; }
         }
