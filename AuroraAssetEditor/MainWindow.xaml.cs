@@ -13,6 +13,7 @@ namespace AuroraAssetEditor {
     using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.Reflection;
     using System.Windows;
     using System.Windows.Controls;
@@ -47,6 +48,11 @@ namespace AuroraAssetEditor {
             var ver = Assembly.GetAssembly(typeof(MainWindow)).GetName().Version;
             Title = string.Format(Title, ver.Major, ver.Minor);
             Icon = App.WpfIcon;
+
+            // add support for TLS 1.1 and TLS 1.2
+            ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol
+                | (SecurityProtocolType)768 // TLS 1.1
+                | (SecurityProtocolType)3072; // TLS 1.2
 
             #region Boxart
 
