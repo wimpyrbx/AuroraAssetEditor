@@ -193,13 +193,13 @@ namespace AuroraAssetEditor.Classes {
                         xml.Read();
                         var url = new Uri(xml.Value);
                         var fname = Path.GetFileNameWithoutExtension(url.LocalPath);
-                        if(fname.StartsWith("banner", StringComparison.CurrentCultureIgnoreCase))
+                        if(fname.StartsWith("banner", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Banner, titleInfo));
-                        else if(fname.StartsWith("background", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("background", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Background, titleInfo));
-                        else if(fname.StartsWith("tile", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("tile", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Icon, titleInfo));
-                        else if(fname.StartsWith("screen", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("screen", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Screenshot, titleInfo));
                         //Ignore anything else
                         break; // We're done with this image
