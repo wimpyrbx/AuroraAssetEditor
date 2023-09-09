@@ -2,7 +2,7 @@ version: 1.3.{build}
 skip_non_tags: true
 configuration: Release
 
-assembly_info:
+dotnet_csproj:
   patch: true
   file: '**\*.csproj'
   assembly_version: '{version}'
@@ -12,9 +12,12 @@ assembly_info:
 build:
   verbosity: minimal
 
+before_deploy:
+  - cmd: dotnet publish -c Release -o publish
+
 artifacts:
-- path: bin\Release\net48\
-  name: Release
+- path: publish\*
+  name: AuroraAssetEditor
 
 deploy:
 - provider: GitHub
@@ -22,5 +25,5 @@ deploy:
   release: Aurora Asset Editor v$(APPVEYOR_BUILD_VERSION)
   auth_token:
     secure: 1ugGk17lkq2gESnUH82Dt9Mfa1BQT3KUcqbgQHafLlFM9BOAwQMNUlj5h0jNhCwO
-  artifact: Release
+  artifact: AuroraAssetEditor
   draft: true
