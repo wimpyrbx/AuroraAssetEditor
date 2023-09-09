@@ -1,17 +1,21 @@
 version: 1.3.{build}
 skip_non_tags: true
 configuration: Release
+
 assembly_info:
   patch: true
-  file: '**\AssemblyInfo.*'
+  file: '**\*.csproj'
   assembly_version: '{version}'
   assembly_file_version: '{version}'
   assembly_informational_version: '{version}'
+
 build:
   verbosity: minimal
+
 artifacts:
-- path: bin\Release\
+- path: bin\Release\net48\
   name: Release
+
 deploy:
 - provider: GitHub
   tag: v$(APPVEYOR_BUILD_VERSION)

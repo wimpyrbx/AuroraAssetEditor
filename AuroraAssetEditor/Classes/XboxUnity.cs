@@ -13,12 +13,11 @@ namespace AuroraAssetEditor.Classes {
     using System.Net;
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
-    using System.Web;
 
     internal static class XboxUnity {
         private static readonly DataContractJsonSerializer Serializer = new DataContractJsonSerializer(typeof(UnityResponse[]));
 
-        private static string GetUnityUrl(string searchTerm) { return string.Format("http://xboxunity.net/api/Covers/{0}", HttpUtility.UrlEncode(searchTerm)); }
+        private static string GetUnityUrl(string searchTerm) { return string.Format("http://xboxunity.net/api/Covers/{0}", WebUtility.UrlEncode(searchTerm)); }
 
         public static XboxUnityAsset[] GetUnityCoverInfo(string searchTerm) {
             using(var wc = new WebClient()) {

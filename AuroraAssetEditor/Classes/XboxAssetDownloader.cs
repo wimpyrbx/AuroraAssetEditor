@@ -16,7 +16,6 @@ namespace AuroraAssetEditor.Classes {
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
     using System.Text;
-    using System.Web;
     using System.Xml;
 
     internal class XboxAssetDownloader {
@@ -36,7 +35,7 @@ namespace AuroraAssetEditor.Classes {
         }
 
         public XboxTitleInfo[] GetTitleInfo(string keywords, XboxLocale locale) {
-            var url = string.Format("http://marketplace.xbox.com/{0}/SiteSearch/xbox/?query={1}&PageSize=5", locale.Locale, HttpUtility.UrlEncode(keywords));
+            var url = string.Format("http://marketplace.xbox.com/{0}/SiteSearch/xbox/?query={1}&PageSize=5", locale.Locale, WebUtility.UrlEncode(keywords));
             var wc = new WebClient();
             var ret = new List<XboxTitleInfo>();
             using(var stream = wc.OpenRead(url)) {
