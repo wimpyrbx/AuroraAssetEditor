@@ -112,7 +112,7 @@ namespace AuroraAssetEditor.Classes {
             path = Path.GetFullPath(path);
             if (File.Exists(path))
                 File.Delete(path);
-            var dir = Path.GetDirectoryName(path);
+            var dir = Path.GetDirectoryName(path); 
             if(string.IsNullOrWhiteSpace(dir))
                 return;
             if(!Directory.Exists(dir))
@@ -142,7 +142,7 @@ namespace AuroraAssetEditor.Classes {
             const string dir = "/Game/Data/GameData/";
             SendStatusChanged("Changing working directory to {0}...", dir);
             _client.SetWorkingDirectory(dir);
-            return _client.GetWorkingDirectory().Equals(dir, StringComparison.CurrentCultureIgnoreCase);
+            return _client.GetWorkingDirectory().Equals(dir, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public bool NavigateToAssetDir(string assetName) {
@@ -151,7 +151,7 @@ namespace AuroraAssetEditor.Classes {
             var dir = "/Game/Data/GameData/" + assetName + "/";
             SendStatusChanged("Changing working directory to {0}...", dir);
             _client.SetWorkingDirectory(dir);
-            return _client.GetWorkingDirectory().Equals(dir, StringComparison.CurrentCultureIgnoreCase);
+            return _client.GetWorkingDirectory().Equals(dir, StringComparison.InvariantCultureIgnoreCase);
         }
 
         public string[] GetDirList() { return (from item in _client.GetListing() where item.Type == FtpFileSystemObjectType.Directory select item.Name).ToArray(); }
@@ -159,7 +159,7 @@ namespace AuroraAssetEditor.Classes {
         public byte[] GetAssetData(string file, string assetDir) {
             if(!NavigateToAssetDir(assetDir))
                 return null;
-            var size = (from item in _client.GetListing() where item.Name.Equals(file, StringComparison.CurrentCultureIgnoreCase) select (int)item.Size).FirstOrDefault();
+            var size = (from item in _client.GetListing() where item.Name.Equals(file, StringComparison.InvariantCultureIgnoreCase) select (int)item.Size).FirstOrDefault();
             if(size <= 0)
                 return null;
             var data = new byte[size];
@@ -191,9 +191,9 @@ namespace AuroraAssetEditor.Classes {
             const string dir = "/Game/Data/DataBases/";
             SendStatusChanged("Changing working directory to {0}...", dir);
             _client.SetWorkingDirectory(dir);
-            if(!_client.GetWorkingDirectory().Equals(dir, StringComparison.CurrentCultureIgnoreCase))
+            if(!_client.GetWorkingDirectory().Equals(dir, StringComparison.InvariantCultureIgnoreCase))
                 return false;
-            var size = (from item in _client.GetListing() where item.Name.Equals("Content.db", StringComparison.CurrentCultureIgnoreCase) select (int)item.Size).FirstOrDefault();
+            var size = (from item in _client.GetListing() where item.Name.Equals("Content.db", StringComparison.InvariantCultureIgnoreCase) select (int)item.Size).FirstOrDefault();
             if(size <= 0)
                 return false;
             var data = new byte[size];

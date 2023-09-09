@@ -63,7 +63,7 @@ namespace AuroraAssetEditor.Controls {
                                          SourceBox.Items.Add("Xbox.com");
                                          var index = 0;
                                          for(var i = 0; i < _locales.Length; i++) {
-                                             if(!_locales[i].Locale.Equals("en-us", StringComparison.CurrentCultureIgnoreCase))
+                                             if(!_locales[i].Locale.Equals("en-us", StringComparison.InvariantCultureIgnoreCase))
                                                  continue;
                                              index = i;
                                              break;

@@ -16,7 +16,6 @@ namespace AuroraAssetEditor.Classes {
     using System.Runtime.Serialization;
     using System.Runtime.Serialization.Json;
     using System.Text;
-    using System.Web;
     using System.Xml;
 
     internal class XboxAssetDownloader {
@@ -36,7 +35,7 @@ namespace AuroraAssetEditor.Classes {
         }
 
         public XboxTitleInfo[] GetTitleInfo(string keywords, XboxLocale locale) {
-            var url = string.Format("http://marketplace.xbox.com/{0}/SiteSearch/xbox/?query={1}&PageSize=5", locale.Locale, HttpUtility.UrlEncode(keywords));
+            var url = string.Format("http://marketplace.xbox.com/{0}/SiteSearch/xbox/?query={1}&PageSize=5", locale.Locale, WebUtility.UrlEncode(keywords));
             var wc = new WebClient();
             var ret = new List<XboxTitleInfo>();
             using(var stream = wc.OpenRead(url)) {
@@ -193,13 +192,13 @@ namespace AuroraAssetEditor.Classes {
                         xml.Read();
                         var url = new Uri(xml.Value);
                         var fname = Path.GetFileNameWithoutExtension(url.LocalPath);
-                        if(fname.StartsWith("banner", StringComparison.CurrentCultureIgnoreCase))
+                        if(fname.StartsWith("banner", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Banner, titleInfo));
-                        else if(fname.StartsWith("background", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("background", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Background, titleInfo));
-                        else if(fname.StartsWith("tile", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("tile", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Icon, titleInfo));
-                        else if(fname.StartsWith("screen", StringComparison.CurrentCultureIgnoreCase))
+                        else if(fname.StartsWith("screen", StringComparison.InvariantCultureIgnoreCase))
                             ret.Add(new XboxAssetInfo(url, XboxAssetType.Screenshot, titleInfo));
                         //Ignore anything else
                         break; // We're done with this image
