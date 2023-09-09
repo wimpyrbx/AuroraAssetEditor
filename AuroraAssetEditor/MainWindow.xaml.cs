@@ -46,7 +46,7 @@ namespace AuroraAssetEditor {
         public MainWindow(IEnumerable<string> args) {
             InitializeComponent();
             var ver = Assembly.GetAssembly(typeof(MainWindow)).GetName().Version;
-            Title = string.Format(Title, ver.Major, ver.Minor);
+            Title = string.Format(Title, ver.Major, ver.Minor, ver.Build);
             Icon = App.WpfIcon;
 
             // add support for TLS 1.1 and TLS 1.2
