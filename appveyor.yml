@@ -18,7 +18,7 @@ build_script:
   - cmd: dotnet publish -c Release -o publish  
 
 artifacts:
-- path: publish\*
+- path: publish
   name: AuroraAssetEditor
 
 deploy:
