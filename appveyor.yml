@@ -11,11 +11,8 @@ dotnet_csproj:
   assembly_version: '{version}'
   informational_version: '{version}'
 
-build:
-  verbosity: minimal
-
-before_deploy:
-  - cmd: dotnet publish -c Release -o publish
+build_script:
+  - cmd: dotnet publish -c Release -o publish  
 
 artifacts:
 - path: publish\*
