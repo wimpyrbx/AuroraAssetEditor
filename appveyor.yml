@@ -15,7 +15,8 @@ dotnet_csproj:
 build_script:
   - cmd: dotnet restore
   - cmd: dotnet build -c Release
-  - cmd: dotnet publish -c Release -o publish  
+  - cmd: dotnet publish -c Release -o publish
+  - cmd: xcopy C:\projects\auroraasseteditor\SQLite.Interop C:\projects\auroraasseteditor\publish /s
 
 artifacts:
 - path: publish
@@ -29,3 +30,6 @@ deploy:
     secure: 1ugGk17lkq2gESnUH82Dt9Mfa1BQT3KUcqbgQHafLlFM9BOAwQMNUlj5h0jNhCwO
   artifact: AuroraAssetEditor
   draft: true
+
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
