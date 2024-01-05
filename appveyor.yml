@@ -1,6 +1,6 @@
 version: 1.4.{build}
 image: Visual Studio 2022
-skip_non_tags: true
+skip_tags: true
 configuration: Release
 
 dotnet_csproj:
