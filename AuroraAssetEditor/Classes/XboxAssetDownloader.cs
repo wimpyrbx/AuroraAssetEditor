@@ -176,32 +176,65 @@ namespace AuroraAssetEditor.Classes {
                 while(xml.Read()) {
                     if(!xml.IsStartElement())
                         continue;
-                    var name = xml.Name.ToLower();
-                    if(!name.StartsWith("live:"))
-                        continue;
-                    name = name.Substring(5);
-                    if(name == "fulltitle") {
+                    if (xml.Name.ToLower() == "live:fulltitle") {
                         xml.Read();
                         titleInfo.Title = xml.Value;
-                    }
-                    if(name != "image")
                         continue;
-                    while(xml.Read() && !(!xml.IsStartElement() && xml.Name.ToLower() == "live:image")) {
-                        if(!xml.IsStartElement() || xml.Name.ToLower() != "live:fileurl")
-                            continue;
-                        xml.Read();
-                        var url = new Uri(xml.Value);
-                        var fname = Path.GetFileNameWithoutExtension(url.LocalPath);
-                        if(fname.StartsWith("banner", StringComparison.InvariantCultureIgnoreCase))
-                            ret.Add(new XboxAssetInfo(url, XboxAssetType.Banner, titleInfo));
-                        else if(fname.StartsWith("background", StringComparison.InvariantCultureIgnoreCase))
-                            ret.Add(new XboxAssetInfo(url, XboxAssetType.Background, titleInfo));
-                        else if(fname.StartsWith("tile", StringComparison.InvariantCultureIgnoreCase))
-                            ret.Add(new XboxAssetInfo(url, XboxAssetType.Icon, titleInfo));
-                        else if(fname.StartsWith("screen", StringComparison.InvariantCultureIgnoreCase))
-                            ret.Add(new XboxAssetInfo(url, XboxAssetType.Screenshot, titleInfo));
-                        //Ignore anything else
-                        break; // We're done with this image
+                    }
+                    // add every 'live:fileurl' within 'live:slideshows' as a screenshot asset
+                    if (xml.Name.ToLower() == "live:slideshows") {
+                        while (xml.Read()) {
+                            if (!xml.IsStartElement() && xml.Name.ToLower() == "live:slideshows") {
+                                break;
+                            }
+                            if (xml.IsStartElement() && xml.Name.ToLower() == "live:fileurl") {
+                                xml.Read();
+                                var url = new Uri(xml.Value);
+                                ret.Add(new XboxAssetInfo(url, XboxAssetType.Screenshot, titleInfo));
+                            }
+                        }
+                    }
+                    // add every 'live:image' within 'live:images' that has both 'live:relationshiptype' and 'live:fileurl' properties as an asset
+                    // the value of 'live:relationshiptype' is used to determine the asset type
+                    if (xml.Name.ToLower() == "live:images") {
+                        var imageRelationshipType = "";
+                        var imageFileUrl = "";
+                        while (xml.Read()) {
+                            if (!xml.IsStartElement() && xml.Name.ToLower() == "live:images") {
+                                break;
+                            }
+                            if (!xml.IsStartElement() && xml.Name.ToLower() == "live:image") {
+                                if (imageRelationshipType != "" && imageFileUrl != "") {
+                                    switch (imageRelationshipType) {
+                                        case "15":
+                                            ret.Add(new XboxAssetInfo(new Uri(imageFileUrl), XboxAssetType.Icon, titleInfo));
+                                            break;
+                                        case "23":
+                                            ret.Add(new XboxAssetInfo(new Uri(imageFileUrl), XboxAssetType.Icon, titleInfo));
+                                            break;
+                                        case "25":
+                                            ret.Add(new XboxAssetInfo(new Uri(imageFileUrl), XboxAssetType.Background, titleInfo));
+                                            break;
+                                        case "27":
+                                            ret.Add(new XboxAssetInfo(new Uri(imageFileUrl), XboxAssetType.Banner, titleInfo));
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                }
+                                imageRelationshipType = "";
+                                imageFileUrl = "";
+                                continue;
+                            }
+                            if (xml.IsStartElement() && xml.Name.ToLower() == "live:relationshiptype") {
+                                xml.Read();
+                                imageRelationshipType = xml.Value;
+                            }
+                            if (xml.IsStartElement() && xml.Name.ToLower() == "live:fileurl") {
+                                xml.Read();
+                                imageFileUrl = xml.Value;
+                            }
+                        }
                     }
                 }
             }
