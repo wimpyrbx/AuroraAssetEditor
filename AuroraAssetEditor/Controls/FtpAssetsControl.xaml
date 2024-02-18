@@ -54,41 +54,72 @@
             </GroupBox>
         </Grid>
         <GroupBox Header="Available Assets" BorderBrush="Black" Grid.Row="1">
-            <DataGrid x:Name="FtpAssetsBox" IsTextSearchEnabled="False" AlternationCount="2"
-                      AutoGenerateColumns="False" CanUserSortColumns="True" CanUserReorderColumns="True"
-                      CanUserResizeColumns="True" CanUserResizeRows="False" AlternatingRowBackground="LightGray"
-                      HeadersVisibility="Column" ColumnWidth="*" CanUserDeleteRows="False" CanUserAddRows="False"
-                      SelectionMode="Single" SelectionUnit="FullRow" Background="WhiteSmoke" RowBackground="WhiteSmoke"
-                      IsReadOnly="True" ContextMenuOpening="FtpAssetsBoxContextOpening">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Title" Binding="{Binding TitleName}" Width="*"/>
-                    <DataGridTextColumn Header="DatabaseID" Binding="{Binding DatabaseId}" Width="Auto"/>
-                    <DataGridTextColumn Header="TitleID" Binding="{Binding TitleId}" Width="Auto"/>
-                    <DataGridTextColumn Header="MediaID" Binding="{Binding MediaId}" Width="Auto"/>
-                    <DataGridTextColumn Header="Disc#" Binding="{Binding DiscNum}" Width="Auto"/>
-                </DataGrid.Columns>
-                <DataGrid.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Get All Assets" Click="GetFtpAssetsClick"/>
-                        <MenuItem Header="Get Boxart" Click="GetBoxartClick"/>
-                        <MenuItem Header="Get Background" Click="GetBackgroundClick"/>
-                        <MenuItem Header="Get Icon/Banner" Click="GetIconBannerClick"/>
-                        <MenuItem Header="Get Screenshots" Click="GetScreenshotsClick"/>
-                        <Separator/>
-                        <MenuItem Header="Save All Assets" Click="SaveFtpAssetsClick"/>
-                        <MenuItem Header="Save Boxart" Click="SaveBoxartClick"/>
-                        <MenuItem Header="Save Background" Click="SaveBackgroundClick"/>
-                        <MenuItem Header="Save Icon/Banner" Click="SaveIconBannerClick"/>
-                        <MenuItem Header="Save Screenshots" Click="SaveScreenshotsClick"/>
-                        <Separator/>
-                        <MenuItem Header="Remove All Assets" Click="RemoveFtpAssetsClick"/>
-                        <MenuItem Header="Remove Boxart" Click="RemoveBoxartClick"/>
-                        <MenuItem Header="Remove Background" Click="RemoveBackgroundClick"/>
-                        <MenuItem Header="Remove Icon/Banner" Click="RemoveIconBannerClick"/>
-                        <MenuItem Header="Remove Screenshots" Click="RemoveScreenshotsClick"/>
-                    </ContextMenu>
-                </DataGrid.ContextMenu>
-            </DataGrid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <GroupBox Header="Filter on title" Grid.Row="0" Grid.Column="0">
+                    <TextBox x:Name="TitleFilterBox" TextChanged="TitleFilterChanged" />
+                </GroupBox>
+                <GroupBox Header="Filter on titleId" Grid.Row="0" Grid.Column="1">
+                    <TextBox x:Name="TitleIdFilterBox" TextChanged="TitleIdFilterChanged"/>
+                </GroupBox>
+                <DataGrid x:Name="FtpAssetsBox"
+                          IsTextSearchEnabled="False"
+                          AlternationCount="2"
+                          AutoGenerateColumns="False"
+                          CanUserSortColumns="True"
+                          CanUserReorderColumns="True"
+                          CanUserResizeColumns="True"
+                          CanUserResizeRows="False"
+                          AlternatingRowBackground="LightGray"
+                          HeadersVisibility="Column"
+                          ColumnWidth="*"
+                          CanUserDeleteRows="False"
+                          CanUserAddRows="False"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          Background="WhiteSmoke"
+                          RowBackground="WhiteSmoke"
+                          IsReadOnly="True"
+                          ContextMenuOpening="FtpAssetsBoxContextOpening"
+                          Grid.ColumnSpan="2"
+                          Grid.Row="1">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Title" Binding="{Binding TitleName}" Width="*"/>
+                        <DataGridTextColumn Header="DatabaseID" Binding="{Binding DatabaseId}" Width="Auto"/>
+                        <DataGridTextColumn Header="TitleID" Binding="{Binding TitleId}" Width="Auto"/>
+                        <DataGridTextColumn Header="MediaID" Binding="{Binding MediaId}" Width="Auto"/>
+                        <DataGridTextColumn Header="Disc#" Binding="{Binding DiscNum}" Width="Auto"/>
+                    </DataGrid.Columns>
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Get All Assets" Click="GetFtpAssetsClick"/>
+                            <MenuItem Header="Get Boxart" Click="GetBoxartClick"/>
+                            <MenuItem Header="Get Background" Click="GetBackgroundClick"/>
+                            <MenuItem Header="Get Icon/Banner" Click="GetIconBannerClick"/>
+                            <MenuItem Header="Get Screenshots" Click="GetScreenshotsClick"/>
+                            <Separator/>
+                            <MenuItem Header="Save All Assets" Click="SaveFtpAssetsClick"/>
+                            <MenuItem Header="Save Boxart" Click="SaveBoxartClick"/>
+                            <MenuItem Header="Save Background" Click="SaveBackgroundClick"/>
+                            <MenuItem Header="Save Icon/Banner" Click="SaveIconBannerClick"/>
+                            <MenuItem Header="Save Screenshots" Click="SaveScreenshotsClick"/>
+                            <Separator/>
+                            <MenuItem Header="Remove All Assets" Click="RemoveFtpAssetsClick"/>
+                            <MenuItem Header="Remove Boxart" Click="RemoveBoxartClick"/>
+                            <MenuItem Header="Remove Background" Click="RemoveBackgroundClick"/>
+                            <MenuItem Header="Remove Icon/Banner" Click="RemoveIconBannerClick"/>
+                            <MenuItem Header="Remove Screenshots" Click="RemoveScreenshotsClick"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                </DataGrid>
+            </Grid>
         </GroupBox>
         <StatusBar Grid.Row="2" HorizontalAlignment="Stretch"
                    VerticalAlignment="Bottom" Background="WhiteSmoke">

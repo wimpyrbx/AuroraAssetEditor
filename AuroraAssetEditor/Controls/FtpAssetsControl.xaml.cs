@@ -15,15 +15,18 @@ namespace AuroraAssetEditor.Controls {
     using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
-    using System.Windows.Threading;
+	using System.Windows.Data;
+	using System.Windows.Threading;
     using Classes;
 
     /// <summary>
     ///     Interaction logic for FtpAssetsControl.xaml
     /// </summary>
     public partial class FtpAssetsControl {
-        private readonly ThreadSafeObservableCollection<AuroraDbManager.ContentItem> _assetsList = new ThreadSafeObservableCollection<AuroraDbManager.ContentItem>();
-        private readonly BackgroundControl _background;
+		private readonly ThreadSafeObservableCollection<AuroraDbManager.ContentItem> _assetsList = new ThreadSafeObservableCollection<AuroraDbManager.ContentItem>();
+		private readonly CollectionViewSource _assetsViewSource = new CollectionViewSource();
+		private readonly ICollectionView _assetView;
+		private readonly BackgroundControl _background;
         private readonly BoxartControl _boxart;
         private readonly IconBannerControl _iconBanner;
         private readonly MainWindow _main;
@@ -33,13 +36,14 @@ namespace AuroraAssetEditor.Controls {
 
         public FtpAssetsControl(MainWindow main, BoxartControl boxart, BackgroundControl background, IconBannerControl iconBanner, ScreenshotsControl screenshots) {
             InitializeComponent();
-            _main = main;
+			_assetsViewSource.Source = _assetsList;
+			_main = main;
             _boxart = boxart;
             _background = background;
             _iconBanner = iconBanner;
             _screenshots = screenshots;
             App.FtpOperations.StatusChanged += (sender, args) => Dispatcher.Invoke(new Action(() => Status.Text = args.StatusMessage));
-            FtpAssetsBox.ItemsSource = _assetsList;
+            FtpAssetsBox.ItemsSource = _assetView = _assetsViewSource.View;
             if(!App.FtpOperations.HaveSettings) {
                 var ip = GetActiveIp();
                 var index = ip.LastIndexOf('.');
@@ -353,7 +357,28 @@ namespace AuroraAssetEditor.Controls {
             SaveScreenshotsClick(sender, e);
         }
 
-        private enum Task {
+		private void TitleFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
+
+		private void TitleIdFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
+
+		private void FiltersChanged(string titleFilter, string titleIdFilter)
+		{
+			_assetView.Filter = item =>
+			{
+				var contentItem = item as AuroraDbManager.ContentItem;
+				if (contentItem == null)
+					return false;
+				if (string.IsNullOrWhiteSpace(titleFilter) && string.IsNullOrWhiteSpace(titleIdFilter))
+					return true;
+				if (!string.IsNullOrWhiteSpace(titleFilter) && !string.IsNullOrWhiteSpace(titleIdFilter))
+					return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower()) && contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
+				if (!string.IsNullOrWhiteSpace(titleFilter))
+					return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower());
+				return contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
+			};
+		}
+
+		private enum Task {
             GetBoxart,
             GetBackground,
             GetIconBanner,
