@@ -18,7 +18,9 @@ namespace AuroraAssetEditor {
     using System.Windows;
     using System.Windows.Controls;
     using Classes;
-    using Controls;
+    using Models;
+	using Controls;
+	using Helpers;
     using Microsoft.Win32;
     using Ookii.Dialogs.Wpf;
     using Image = System.Drawing.Image;
@@ -45,7 +47,9 @@ namespace AuroraAssetEditor {
 
         public MainWindow(IEnumerable<string> args) {
             InitializeComponent();
-            var ver = Assembly.GetAssembly(typeof(MainWindow)).GetName().Version;
+			DataContext = GlobalState.CurrentGame;
+			GlobalState.GameChanged += OnGameChanged;  // Ensure the UI gets updated when the game changes
+			var ver = Assembly.GetAssembly(typeof(MainWindow)).GetName().Version;
             Title = string.Format(Title, ver.Major, ver.Minor, ver.Build);
             Icon = App.WpfIcon;
 
@@ -158,7 +162,18 @@ namespace AuroraAssetEditor {
             bw.RunWorkerAsync();
         }
 
-        internal static void SaveError(Exception ex) { File.AppendAllText("error.log", string.Format("[{0}]:{2}{1}{2}", DateTime.Now, ex, Environment.NewLine)); }
+		private void OnGameChanged()
+		{
+			Dispatcher.Invoke(() =>
+			{
+                GameSelector.Visibility = GlobalState.CurrentGame.IsGameSelected ? Visibility.Visible : Visibility.Hidden;
+                GameSelector.Header = GlobalState.CurrentGame.Title;
+                GameTitleIdMenu.Header = GlobalState.CurrentGame.TitleId;
+                GameDbIdMenu.Header = GlobalState.CurrentGame.DbId;
+            });
+		}
+
+		internal static void SaveError(Exception ex) { File.AppendAllText("error.log", string.Format("[{0}]:{2}{1}{2}", DateTime.Now, ex, Environment.NewLine)); }
 
         private static void SaveFileError(string file, Exception ex) {
             SaveError(ex);
@@ -337,9 +352,44 @@ namespace AuroraAssetEditor {
             bw.RunWorkerAsync();
         }
 
-        private void ExitOnClick(object sender, RoutedEventArgs e) { Close(); }
+		private void ClearCurrentGame_Click(object sender, RoutedEventArgs e)
+		{
+            var NewGame = new Game
+            {
+                Title = string.Empty,
+                TitleId = string.Empty,
+                DbId = string.Empty,
+                IsGameSelected = false,
+            };
+            GlobalState.CurrentGame = NewGame;
+        }
 
-        internal void OnDragEnter(object sender, DragEventArgs e) {
+		private void CopyTitleIdToClipboard_Click(object sender, RoutedEventArgs e)
+		{
+			string titleId = GlobalState.CurrentGame.TitleId;
+			if (!string.IsNullOrEmpty(titleId))
+			{
+				Clipboard.SetText(titleId);
+			}
+		}
+
+		private void CopyDbIdToClipboard_Click(object sender, RoutedEventArgs e)
+		{
+			string DbID = GlobalState.CurrentGame.DbId;
+			if (!string.IsNullOrEmpty(DbID))
+			{
+				Clipboard.SetText(DbID);
+			}
+		}
+
+		private void ExitOnClick(object sender, RoutedEventArgs e) { Close(); }
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			GlobalState.GameChanged -= OnGameChanged;
+		}
+
+		internal void OnDragEnter(object sender, DragEventArgs e) {
             if(e.Data.GetDataPresent(DataFormats.FileDrop) && (e.AllowedEffects & DragDropEffects.Copy) == DragDropEffects.Copy)
                 e.Effects = DragDropEffects.Copy;
             else

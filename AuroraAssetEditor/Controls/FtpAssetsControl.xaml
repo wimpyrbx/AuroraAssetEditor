@@ -70,6 +70,7 @@
                     <TextBox x:Name="TitleIdFilterBox" TextChanged="TitleIdFilterChanged"/>
                 </GroupBox>
                 <DataGrid x:Name="FtpAssetsBox"
+                          SelectionChanged="FtpAssetsBox_SelectionChanged"
                           IsTextSearchEnabled="False"
                           AlternationCount="2"
                           AutoGenerateColumns="False"

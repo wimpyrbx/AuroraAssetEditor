@@ -17,11 +17,13 @@ namespace AuroraAssetEditor.Controls {
     using System.Windows.Controls;
 	using System.Windows.Data;
 	using System.Windows.Threading;
-    using Classes;
+	using AuroraAssetEditor.Models;
+	using Classes;
+	using Helpers;
 
-    /// <summary>
-    ///     Interaction logic for FtpAssetsControl.xaml
-    /// </summary>
+	/// <summary>
+	///     Interaction logic for FtpAssetsControl.xaml
+	/// </summary>
     public partial class FtpAssetsControl {
 		private readonly ThreadSafeObservableCollection<AuroraDbManager.ContentItem> _assetsList = new ThreadSafeObservableCollection<AuroraDbManager.ContentItem>();
 		private readonly CollectionViewSource _assetsViewSource = new CollectionViewSource();
@@ -86,7 +88,24 @@ namespace AuroraAssetEditor.Controls {
             bw.RunWorkerAsync();
         }
 
-        private void SaveSettingsClick(object sender, RoutedEventArgs e) { App.FtpOperations.SaveSettings(IpBox.Text, UserBox.Text, PassBox.Text, PortBox.Text); }
+		private void FtpAssetsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+		{
+			if (FtpAssetsBox.SelectedItem is Classes.AuroraDbManager.ContentItem selectedAsset)
+			{
+				var newGame = new Game
+				{
+					Title = selectedAsset.TitleName,
+					TitleId = selectedAsset.TitleId,
+					DbId = selectedAsset.DatabaseId,
+					IsGameSelected = true
+				};
+
+				GlobalState.CurrentGame = newGame;
+			}
+		}
+
+
+		private void SaveSettingsClick(object sender, RoutedEventArgs e) { App.FtpOperations.SaveSettings(IpBox.Text, UserBox.Text, PassBox.Text, PortBox.Text); }
 
         private void GetAssetsClick(object sender, RoutedEventArgs e) {
             _assetsList.Clear();
