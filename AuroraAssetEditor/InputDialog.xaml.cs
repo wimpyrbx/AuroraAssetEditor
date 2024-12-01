@@ -1,9 +1,9 @@
 ﻿// 
-// 	InputDialog.xaml.cs
-// 	AuroraAssetEditor
+//  InputDialog.xaml.cs
+//  AuroraAssetEditor
 // 
-// 	Created by Swizzy on 07/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 07/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor {
     using System;

@@ -81,15 +81,15 @@ namespace PhoenixTools
             {
                 Console.WriteLine(e.Message);
             }
-			finally {
-				// Clean up unmanaged file data
+            finally {
+                // Clean up unmanaged file data
                 if (pd != IntPtr.Zero)
                     Marshal.FreeHGlobal(pd);
                 if (hd != IntPtr.Zero)
                     Marshal.FreeHGlobal(hd);
                 if (vd != IntPtr.Zero)
                     Marshal.FreeHGlobal(vd);
-			}
+            }
 
             return false;
         }

@@ -1,9 +1,9 @@
 ﻿// 
-// 	AuroraDbManager.cs
-// 	AuroraAssetEditor
+//  AuroraDbManager.cs
+//  AuroraAssetEditor
 // 
-// 	Created by Swizzy on 14/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 14/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor.Classes {
     using System;

@@ -1,9 +1,9 @@
 ﻿// 
-// 	TitleAndDbIdDialog.xaml.cs
-// 	AuroraAssetEditor
+//  TitleAndDbIdDialog.xaml.cs
+//  AuroraAssetEditor
 // 
-// 	Created by Swizzy on 10/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 10/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor {
     using System.Globalization;
@@ -11,12 +11,15 @@ namespace AuroraAssetEditor {
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using AuroraAssetEditor.Helpers;
 
     public partial class TitleAndDbIdDialog {
         public TitleAndDbIdDialog(Window owner) {
             InitializeComponent();
             Icon = App.WpfIcon;
             Owner = owner;
+            TitleIdBox.Text = GlobalState.CurrentGame.TitleId;
+            DbIdBox.Text = GlobalState.CurrentGame.DbId;
         }
 
         public string TitleId { get { return TitleIdBox.Text; } }

@@ -1,9 +1,9 @@
 ﻿//
-// 	App.xaml.cs
-// 	AuroraAssetEditor
+//  App.xaml.cs
+//  AuroraAssetEditor
 //
-// 	Created by Swizzy on 08/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 08/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor {
     using System.Drawing;
