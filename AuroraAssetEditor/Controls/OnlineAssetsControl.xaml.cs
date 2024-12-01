@@ -1,9 +1,9 @@
 ﻿//
-// 	OnlineAssetsControl.xaml.cs
-// 	AuroraAssetEditor
+//  OnlineAssetsControl.xaml.cs
+//  AuroraAssetEditor
 //
-// 	Created by Swizzy on 10/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 10/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor.Controls {
     using System;
@@ -12,27 +12,27 @@ namespace AuroraAssetEditor.Controls {
     using System.Drawing.Imaging;
     using System.Globalization;
     using System.IO;
-	using System.Text.RegularExpressions;
+    using System.Text.RegularExpressions;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
     using System.Windows.Media.Imaging;
-	using AuroraAssetEditor.Helpers;
-	using Classes;
-	using System.Linq;
-	using Image = System.Drawing.Image;
+    using AuroraAssetEditor.Helpers;
+    using Classes;
+    using System.Linq;
+    using Image = System.Drawing.Image;
 
     /// <summary>
     ///     Interaction logic for OnlineAssetsControl.xaml
     /// </summary>
     public partial class OnlineAssetsControl {
-		private enum OnlineAssetSources
-		{
-			XboxUnityOption = 0,
-			ArchiveOption = 1,
-			XboxComOption = 2
-		}
-		private readonly BackgroundControl _background;
+        private enum OnlineAssetSources
+        {
+            XboxUnityOption = 0,
+            ArchiveOption = 1,
+            XboxComOption = 2
+        }
+        private readonly BackgroundControl _background;
         private readonly UIElement[] _backgroundMenu;
         private readonly UIElement[] _bannerMenu;
         private readonly BoxartControl _boxart;
@@ -45,20 +45,19 @@ namespace AuroraAssetEditor.Controls {
         private readonly BackgroundWorker _unityWorker = new BackgroundWorker();
         private readonly XboxAssetDownloader _xboxAssetDownloader = new XboxAssetDownloader();
         private readonly BackgroundWorker _xboxWorker = new BackgroundWorker();
-		private BackgroundWorker _archiveWorker;
-		private InternetArchiveDownloader _archiveDownloader;
-		private Image _img;
+        private BackgroundWorker _archiveWorker;
+        private InternetArchiveDownloader _archiveDownloader;
+        private Image _img;
         private string _keywords;
         private XboxLocale[] _locales;
         private uint _titleId;
         private XboxUnity.XboxUnityAsset[] _unityResult;
         private XboxTitleInfo[] _xboxResult;
-		private InternetArchiveAsset[] _archiveResult;
+        private InternetArchiveAsset[] _archiveResult;
 
-
-		public OnlineAssetsControl(MainWindow main, BoxartControl boxart, BackgroundControl background, IconBannerControl iconBanner, ScreenshotsControl screenshots) {
+        public OnlineAssetsControl(MainWindow main, BoxartControl boxart, BackgroundControl background, IconBannerControl iconBanner, ScreenshotsControl screenshots) {
             InitializeComponent();
-			GlobalState.GameChanged += OnGameChanged;
+            GlobalState.GameChanged += OnGameChanged;
             XboxAssetDownloader.StatusChanged += StatusChanged;
             _main = main;
             _boxart = boxart;
@@ -137,7 +136,7 @@ namespace AuroraAssetEditor.Controls {
                                                           disp.AddRange(info.AssetsInfo);
                                                       ResultBox.ItemsSource = disp;
                                                       SearchResultCount.Text = disp.Count.ToString(CultureInfo.InvariantCulture);
-													  DownloadAllButton.Visibility = Visibility.Visible;
+                                                      DownloadAllButton.Visibility = Visibility.Visible;
                                                   }
                                                   else {
                                                       ResultBox.ItemsSource = null;
@@ -145,50 +144,50 @@ namespace AuroraAssetEditor.Controls {
                                                   }
                                               };
 
-			#endregion
+            #endregion
 
-			#region Internet Archive Worker
+            #region Internet Archive Worker
 
-			_archiveWorker = new BackgroundWorker();
-			_archiveDownloader = new InternetArchiveDownloader();
+            _archiveWorker = new BackgroundWorker();
+            _archiveDownloader = new InternetArchiveDownloader();
 
-			_archiveWorker.DoWork += (sender, args) =>
-			{
-				try
-				{
-					uint titleId = (uint)args.Argument;
-					_archiveResult = _archiveDownloader.GetTitleInfo(titleId);
-					Dispatcher.Invoke(new Action(() => StatusMessage.Text = "Finished retrieving asset information..."));
-					args.Result = true;
-				}
-				catch (Exception ex)
-				{
-					MainWindow.SaveError(ex);
-					Dispatcher.Invoke(new Action(() => StatusMessage.Text = "An error has occurred, check error.log for more information..."));
-					args.Result = false;
-				}
-			};
+            _archiveWorker.DoWork += (sender, args) =>
+            {
+                try
+                {
+                    uint titleId = (uint)args.Argument;
+                    _archiveResult = _archiveDownloader.GetTitleInfo(titleId);
+                    Dispatcher.Invoke(new Action(() => StatusMessage.Text = "Finished retrieving asset information..."));
+                    args.Result = true;
+                }
+                catch (Exception ex)
+                {
+                    MainWindow.SaveError(ex);
+                    Dispatcher.Invoke(new Action(() => StatusMessage.Text = "An error has occurred, check error.log for more information..."));
+                    args.Result = false;
+                }
+            };
 
-			_archiveWorker.RunWorkerCompleted += (sender, args) =>
-			{
-				if ((bool)args.Result)
-				{
-					ResultBox.ItemsSource = _archiveResult;
-					SearchResultCount.Text = _archiveResult.Length.ToString(CultureInfo.InvariantCulture);
-				}
-				else
-				{
-					ResultBox.ItemsSource = null;
-					SearchResultCount.Text = "0";
-				}
-			};
+            _archiveWorker.RunWorkerCompleted += (sender, args) =>
+            {
+                if ((bool)args.Result)
+                {
+                    ResultBox.ItemsSource = _archiveResult;
+                    SearchResultCount.Text = _archiveResult.Length.ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    ResultBox.ItemsSource = null;
+                    SearchResultCount.Text = "0";
+                }
+            };
 
-			#endregion
+            #endregion
 
 
-			#region Cover Menu
+            #region Cover Menu
 
-			_coverMenu = new UIElement[] {
+            _coverMenu = new UIElement[] {
                                              new MenuItem {
                                                               Header = "Save cover to file"
                                                           },
@@ -270,53 +269,53 @@ namespace AuroraAssetEditor.Controls {
 
         private void StatusChanged(object sender, StatusArgs e) { Dispatcher.Invoke(new Action(() => StatusMessage.Text = e.StatusMessage)); }
 
-		private void OnGameChanged() {
-			Dispatcher.Invoke(() =>
-			{
-				TitleIdBox.Text = GlobalState.CurrentGame.TitleId;
-			});
-		}
+        private void OnGameChanged() {
+            Dispatcher.Invoke(() =>
+            {
+                TitleIdBox.Text = GlobalState.CurrentGame.TitleId;
+            });
+        }
 
         private void OnPreviewTextInput(object sender, TextCompositionEventArgs e) { e.Handled = !uint.TryParse(e.Text, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out _titleId); }
 
         private void SourceBox_SelectionChanged(object sender, SelectionChangedEventArgs e) {
             LocaleGrid.Visibility = SourceBox.SelectedIndex == (int) OnlineAssetSources.XboxComOption ? Visibility.Visible : Visibility.Hidden;
-			KeywordsButton.Visibility = SourceBox.SelectedIndex == (int) OnlineAssetSources.ArchiveOption ? Visibility.Hidden : Visibility.Visible;
-			KeywordsBox.Visibility = SourceBox.SelectedIndex == (int)OnlineAssetSources.ArchiveOption ? Visibility.Hidden : Visibility.Visible;
-			DownloadAllButton.Visibility = Visibility.Hidden;
+            KeywordsButton.Visibility = SourceBox.SelectedIndex == (int) OnlineAssetSources.ArchiveOption ? Visibility.Hidden : Visibility.Visible;
+            KeywordsBox.Visibility = SourceBox.SelectedIndex == (int)OnlineAssetSources.ArchiveOption ? Visibility.Hidden : Visibility.Visible;
+            DownloadAllButton.Visibility = Visibility.Hidden;
 
-		}
+        }
 
-		private void ByTitleIdClick(object sender, RoutedEventArgs e)
-		{
-			uint.TryParse(TitleIdBox.Text, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out _titleId);
-			if (_unityWorker.IsBusy || _xboxWorker.IsBusy || _archiveWorker.IsBusy)
-			{
-				MessageBox.Show("Please wait for previous operation to complete!");
-				return;
-			}
-			PreviewImg.Source = null;
-			PreviewImg.ContextMenu.ItemsSource = null;
-			_main.EditMenu.ItemsSource = null;
-			_keywords = null;
+        private void ByTitleIdClick(object sender, RoutedEventArgs e)
+        {
+            uint.TryParse(TitleIdBox.Text, NumberStyles.HexNumber, CultureInfo.CurrentCulture, out _titleId);
+            if (_unityWorker.IsBusy || _xboxWorker.IsBusy || _archiveWorker.IsBusy)
+            {
+                MessageBox.Show("Please wait for previous operation to complete!");
+                return;
+            }
+            PreviewImg.Source = null;
+            PreviewImg.ContextMenu.ItemsSource = null;
+            _main.EditMenu.ItemsSource = null;
+            _keywords = null;
 
-			switch (SourceBox.SelectedIndex)
-			{
-				case 0:
-					StatusMessage.Text = "Downloading asset information...";
-					_unityWorker.RunWorkerAsync(_titleId.ToString("X08"));
-					break;
-				case 2:
-					_xboxWorker.RunWorkerAsync(LocaleBox.SelectedItem);
-					break;
-				case 1:
-					StatusMessage.Text = "Downloading cover from Internet Archive...";
-					_archiveWorker.RunWorkerAsync(_titleId);
-					break;
-			}
-		}
+            switch (SourceBox.SelectedIndex)
+            {
+                case 0:
+                    StatusMessage.Text = "Downloading asset information...";
+                    _unityWorker.RunWorkerAsync(_titleId.ToString("X08"));
+                    break;
+                case 2:
+                    _xboxWorker.RunWorkerAsync(LocaleBox.SelectedItem);
+                    break;
+                case 1:
+                    StatusMessage.Text = "Downloading cover from Internet Archive...";
+                    _archiveWorker.RunWorkerAsync(_titleId);
+                    break;
+            }
+        }
 
-		private void ByKeywordsClick(object sender, RoutedEventArgs e) {
+        private void ByKeywordsClick(object sender, RoutedEventArgs e) {
             if(_unityWorker.IsBusy || _xboxWorker.IsBusy) {
                 MessageBox.Show("Please wait for previous operation to complete!");
                 return;
@@ -378,91 +377,91 @@ namespace AuroraAssetEditor.Controls {
             else {
                 var xbox = ResultBox.SelectedItem as XboxTitleInfo.XboxAssetInfo;
                 if(xbox != null) {
-					if (!xbox.HaveAsset)
-					{
-						PreviewImg.Source = null;
-						StatusMessage.Text = "Downloading asset data...";
-						var bw = new BackgroundWorker();
-						bw.DoWork += (o, args) => {
-							var asset = args.Argument as XboxTitleInfo.XboxAssetInfo;
-							if (asset != null)
-								asset.GetAsset();
-						};
-						bw.RunWorkerCompleted += (o, args) => {
-							StatusMessage.Text = "Finished downloading asset data...";
-							ResultBox_SelectionChanged(null, null);
-						};
-						bw.RunWorkerAsync(xbox);
-						return;
-					}
-					switch (xbox.AssetType)
-					{
-						case XboxTitleInfo.XboxAssetType.Icon:
-							SetPreview(xbox.GetAsset().Image, 64, 64);
-							PreviewImg.ContextMenu.ItemsSource = _iconMenu;
-							_main.EditMenu.ItemsSource = _iconMenu;
-							break;
-						case XboxTitleInfo.XboxAssetType.Banner:
-							SetPreview(xbox.GetAsset().Image, 420, 96);
-							PreviewImg.ContextMenu.ItemsSource = _bannerMenu;
-							_main.EditMenu.ItemsSource = _bannerMenu;
-							break;
-						case XboxTitleInfo.XboxAssetType.Background:
-							SetPreview(xbox.GetAsset().Image, 1280, 720);
-							PreviewImg.ContextMenu.ItemsSource = _backgroundMenu;
-							_main.EditMenu.ItemsSource = _backgroundMenu;
-							break;
-						case XboxTitleInfo.XboxAssetType.Screenshot:
-							SetPreview(xbox.GetAsset().Image, 1000, 562);
-							PreviewImg.ContextMenu.ItemsSource = _screenshotsMenu;
-							_main.EditMenu.ItemsSource = _screenshotsMenu;
-							break;
-					}
-				} else
-				{
-					var archive = ResultBox.SelectedItem as InternetArchiveAsset;
-					if (archive != null)
-					{
-						if (!archive.HaveAsset)
-						{
-							PreviewImg.Source = null;
-							StatusMessage.Text = "Downloading cover...";
-							var bw = new BackgroundWorker();
-							bw.DoWork += (o, args) =>
-							{
-								var asset = args.Argument as InternetArchiveAsset;
-								if (asset != null)
-									asset.GetCover();
-							};
-							bw.RunWorkerCompleted += (o, args) =>
-							{
-								StatusMessage.Text = "Finished downloading cover...";
-								ResultBox_SelectionChanged(null, null);
-							};
-							bw.RunWorkerAsync(archive);
-						}
-						else
-						{
-							var cover = archive.GetCover();
-							if (cover != null)
-							{
-								SetPreview(cover, 900, 600);
-								PreviewImg.ContextMenu.ItemsSource = _coverMenu;
-								_main.EditMenu.ItemsSource = _coverMenu;
-							}
-							else
-							{
-								PreviewImg.Source = null;
-								PreviewImg.ContextMenu.ItemsSource = null;
-								_main.EditMenu.ItemsSource = null;
-								StatusMessage.Text = "Failed to load cover image.";
-							}
-						}
-					}
+                    if (!xbox.HaveAsset)
+                    {
+                        PreviewImg.Source = null;
+                        StatusMessage.Text = "Downloading asset data...";
+                        var bw = new BackgroundWorker();
+                        bw.DoWork += (o, args) => {
+                            var asset = args.Argument as XboxTitleInfo.XboxAssetInfo;
+                            if (asset != null)
+                                asset.GetAsset();
+                        };
+                        bw.RunWorkerCompleted += (o, args) => {
+                            StatusMessage.Text = "Finished downloading asset data...";
+                            ResultBox_SelectionChanged(null, null);
+                        };
+                        bw.RunWorkerAsync(xbox);
+                        return;
+                    }
+                    switch (xbox.AssetType)
+                    {
+                        case XboxTitleInfo.XboxAssetType.Icon:
+                            SetPreview(xbox.GetAsset().Image, 64, 64);
+                            PreviewImg.ContextMenu.ItemsSource = _iconMenu;
+                            _main.EditMenu.ItemsSource = _iconMenu;
+                            break;
+                        case XboxTitleInfo.XboxAssetType.Banner:
+                            SetPreview(xbox.GetAsset().Image, 420, 96);
+                            PreviewImg.ContextMenu.ItemsSource = _bannerMenu;
+                            _main.EditMenu.ItemsSource = _bannerMenu;
+                            break;
+                        case XboxTitleInfo.XboxAssetType.Background:
+                            SetPreview(xbox.GetAsset().Image, 1280, 720);
+                            PreviewImg.ContextMenu.ItemsSource = _backgroundMenu;
+                            _main.EditMenu.ItemsSource = _backgroundMenu;
+                            break;
+                        case XboxTitleInfo.XboxAssetType.Screenshot:
+                            SetPreview(xbox.GetAsset().Image, 1000, 562);
+                            PreviewImg.ContextMenu.ItemsSource = _screenshotsMenu;
+                            _main.EditMenu.ItemsSource = _screenshotsMenu;
+                            break;
+                    }
+                } else
+                {
+                    var archive = ResultBox.SelectedItem as InternetArchiveAsset;
+                    if (archive != null)
+                    {
+                        if (!archive.HaveAsset)
+                        {
+                            PreviewImg.Source = null;
+                            StatusMessage.Text = "Downloading cover...";
+                            var bw = new BackgroundWorker();
+                            bw.DoWork += (o, args) =>
+                            {
+                                var asset = args.Argument as InternetArchiveAsset;
+                                if (asset != null)
+                                    asset.GetCover();
+                            };
+                            bw.RunWorkerCompleted += (o, args) =>
+                            {
+                                StatusMessage.Text = "Finished downloading cover...";
+                                ResultBox_SelectionChanged(null, null);
+                            };
+                            bw.RunWorkerAsync(archive);
+                        }
+                        else
+                        {
+                            var cover = archive.GetCover();
+                            if (cover != null)
+                            {
+                                SetPreview(cover, 900, 600);
+                                PreviewImg.ContextMenu.ItemsSource = _coverMenu;
+                                _main.EditMenu.ItemsSource = _coverMenu;
+                            }
+                            else
+                            {
+                                PreviewImg.Source = null;
+                                PreviewImg.ContextMenu.ItemsSource = null;
+                                _main.EditMenu.ItemsSource = null;
+                                StatusMessage.Text = "Failed to load cover image.";
+                            }
+                        }
+                    }
 
-				}
+                }
 
-			}
+            }
         }
 
         private void DownloadAllButton_Click(object sender, RoutedEventArgs e)
@@ -476,9 +475,9 @@ namespace AuroraAssetEditor.Controls {
                 return;
             }
 
-			_background.Reset();
-			_iconBanner.Reset();
-			_screenshots.Reset();
+            _background.Reset();
+            _iconBanner.Reset();
+            _screenshots.Reset();
 
             DownloadAllButton.IsEnabled = false;
             StatusMessage.Text = "Downloading all assets...";
@@ -489,9 +488,9 @@ namespace AuroraAssetEditor.Controls {
             bw.DoWork += (s, args) =>
             {
                 int total = assets.Count;
-				int max_ss = 3;
-				int current_ss = 0;
-				int current = 0;
+                int max_ss = 3;
+                int current_ss = 0;
+                int current = 0;
 
                 foreach (var asset in assets)
                 {
@@ -499,15 +498,15 @@ namespace AuroraAssetEditor.Controls {
                     {
                         if (!asset.HaveAsset)
                         {
-							if (asset.AssetType == XboxTitleInfo.XboxAssetType.Screenshot)
-							{
-								if (current_ss >= max_ss)
-								{
-									continue;
-								}
-								current_ss++;
-							}
-							asset.GetAsset();
+                            if (asset.AssetType == XboxTitleInfo.XboxAssetType.Screenshot)
+                            {
+                                if (current_ss >= max_ss)
+                                {
+                                    continue;
+                                }
+                                current_ss++;
+                            }
+                            asset.GetAsset();
                         }
 
                         var image = asset.GetAsset().Image;
@@ -566,7 +565,7 @@ namespace AuroraAssetEditor.Controls {
             bw.RunWorkerAsync();
         }
 
-		private void TitleIdBox_TextChanged(object sender, TextChangedEventArgs e) { TitleIdBox.Text = Regex.Replace(TitleIdBox.Text, "[^a-fA-F0-9]+", ""); }
+        private void TitleIdBox_TextChanged(object sender, TextChangedEventArgs e) { TitleIdBox.Text = Regex.Replace(TitleIdBox.Text, "[^a-fA-F0-9]+", ""); }
 
         private void OnDragEnter(object sender, DragEventArgs e) { _main.OnDragEnter(sender, e); }
 

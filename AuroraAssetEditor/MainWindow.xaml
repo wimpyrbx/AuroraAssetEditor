@@ -21,8 +21,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Menu Grid.Row="0"
-                VerticalAlignment="Center"
-                Background="White" Grid.ColumnSpan="2">
+                  VerticalAlignment="Center"
+                  Background="White"
+                  Grid.ColumnSpan="2">
                 <MenuItem ContextMenuOpening="FileOpening" Header="File">
                     <MenuItem Click="CreateNewOnClick" Header="Create New Asset File" />
                     <MenuItem Click="LoadAssetOnClick" Header="Load Asset File" />
@@ -52,25 +53,23 @@
                           Header="Edit"
                           SubmenuOpened="EditMenuOpened" />
                 <MenuItem x:Name="GameSelector"
-                    Visibility="Hidden"
-                    Margin="100,0,0,0">
-                    <MenuItem
-                        x:Name="GameTitleIdMenu"
-                        Click="CopyTitleIdToClipboard_Click"
-                        ToolTip="Copies the TitleId to the clipboard"/> 
-                    <MenuItem
-                        x:Name="GameDbIdMenu"
-                        Click="CopyDbIdToClipboard_Click"
-                        ToolTip="Copies the DatabaseID to the clipboard"/>
+                          Visibility="Hidden"
+                          Margin="100,0,0,0">
+                    <MenuItem x:Name="GameTitleIdMenu"
+                              Click="CopyTitleIdToClipboard_Click"
+                              ToolTip="Copies the TitleId to the clipboard"/> 
+                    <MenuItem x:Name="GameDbIdMenu"
+                              Click="CopyDbIdToClipboard_Click"
+                              ToolTip="Copies the DatabaseID to the clipboard"/>
                     <MenuItem Header="Unselect current game"
-                        Click="ClearCurrentGame_Click"
-                        ToolTip="Clear Selection"/>
+                              Click="ClearCurrentGame_Click"
+                              ToolTip="Clear Selection"/>
                 </MenuItem>
             </Menu>
             <TabControl Grid.Row="1"
                         Margin="10"
-                        SelectionChanged="TabChanged"
-                         Grid.ColumnSpan="2">
+                        Grid.ColumnSpan="2"
+                        SelectionChanged="TabChanged">
                 <TabItem x:Name="BoxartTab" Header="Boxart/Cover" />
                 <TabItem x:Name="BackgroundTab" Header="Background" />
                 <TabItem x:Name="IconBannerTab" Header="Icon/Banner" />

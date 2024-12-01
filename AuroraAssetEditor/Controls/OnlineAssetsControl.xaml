@@ -60,11 +60,12 @@
                 <Button x:Name="KeywordsButton" Grid.Column="1" Content="Search by Keywords" Margin="10"
                         Padding="10, 5, 10, 5" Click="ByKeywordsClick" />
                 <Button x:Name="DownloadAllButton"
-                    Margin="10" Padding="10, 5, 10, 5"
-                    Grid.Column="2"
-                    Content="Apply All Assets" 
-                    Click="DownloadAllButton_Click"
-                    Visibility="Hidden"/>
+                        Margin="10"
+                        Padding="10, 5, 10, 5"
+                        Grid.Column="2"
+                        Content="Apply All Assets" 
+                        Click="DownloadAllButton_Click"
+                        Visibility="Hidden"/>
             </Grid>
         </Grid>
         <Grid Row="1">

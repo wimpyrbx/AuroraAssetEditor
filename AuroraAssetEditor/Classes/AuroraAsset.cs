@@ -1,9 +1,9 @@
 ﻿// 
-// 	AuroraAsset.cs
-// 	AuroraAssetEditor
+//  AuroraAsset.cs
+//  AuroraAssetEditor
 // 
-// 	Created by Swizzy on 04/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 04/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor.Classes {
     using System;

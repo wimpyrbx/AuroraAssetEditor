@@ -1,9 +1,9 @@
 ﻿//
-// 	FtpAssetsControl.xaml.cs
-// 	AuroraAssetEditor
+//  FtpAssetsControl.xaml.cs
+//  AuroraAssetEditor
 //
-// 	Created by Swizzy on 13/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 13/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor.Controls {
     using System;
@@ -15,20 +15,20 @@ namespace AuroraAssetEditor.Controls {
     using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
-	using System.Windows.Data;
-	using System.Windows.Threading;
-	using AuroraAssetEditor.Models;
-	using Classes;
-	using Helpers;
+    using System.Windows.Data;
+    using System.Windows.Threading;
+    using AuroraAssetEditor.Models;
+    using Classes;
+    using Helpers;
 
-	/// <summary>
-	///     Interaction logic for FtpAssetsControl.xaml
-	/// </summary>
+    /// <summary>
+    ///     Interaction logic for FtpAssetsControl.xaml
+    /// </summary>
     public partial class FtpAssetsControl {
-		private readonly ThreadSafeObservableCollection<AuroraDbManager.ContentItem> _assetsList = new ThreadSafeObservableCollection<AuroraDbManager.ContentItem>();
-		private readonly CollectionViewSource _assetsViewSource = new CollectionViewSource();
-		private readonly ICollectionView _assetView;
-		private readonly BackgroundControl _background;
+        private readonly ThreadSafeObservableCollection<AuroraDbManager.ContentItem> _assetsList = new ThreadSafeObservableCollection<AuroraDbManager.ContentItem>();
+        private readonly CollectionViewSource _assetsViewSource = new CollectionViewSource();
+        private readonly ICollectionView _assetView;
+        private readonly BackgroundControl _background;
         private readonly BoxartControl _boxart;
         private readonly IconBannerControl _iconBanner;
         private readonly MainWindow _main;
@@ -38,8 +38,8 @@ namespace AuroraAssetEditor.Controls {
 
         public FtpAssetsControl(MainWindow main, BoxartControl boxart, BackgroundControl background, IconBannerControl iconBanner, ScreenshotsControl screenshots) {
             InitializeComponent();
-			_assetsViewSource.Source = _assetsList;
-			_main = main;
+            _assetsViewSource.Source = _assetsList;
+            _main = main;
             _boxart = boxart;
             _background = background;
             _iconBanner = iconBanner;
@@ -88,24 +88,23 @@ namespace AuroraAssetEditor.Controls {
             bw.RunWorkerAsync();
         }
 
-		private void FtpAssetsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-		{
-			if (FtpAssetsBox.SelectedItem is Classes.AuroraDbManager.ContentItem selectedAsset)
-			{
-				var newGame = new Game
-				{
-					Title = selectedAsset.TitleName,
-					TitleId = selectedAsset.TitleId,
-					DbId = selectedAsset.DatabaseId,
-					IsGameSelected = true
-				};
+        private void SaveSettingsClick(object sender, RoutedEventArgs e) { App.FtpOperations.SaveSettings(IpBox.Text, UserBox.Text, PassBox.Text, PortBox.Text); }
 
-				GlobalState.CurrentGame = newGame;
-			}
-		}
+        private void FtpAssetsBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (FtpAssetsBox.SelectedItem is Classes.AuroraDbManager.ContentItem selectedAsset)
+            {
+                var newGame = new Game
+                {
+                    Title = selectedAsset.TitleName,
+                    TitleId = selectedAsset.TitleId,
+                    DbId = selectedAsset.DatabaseId,
+                    IsGameSelected = true
+                };
 
-
-		private void SaveSettingsClick(object sender, RoutedEventArgs e) { App.FtpOperations.SaveSettings(IpBox.Text, UserBox.Text, PassBox.Text, PortBox.Text); }
+                GlobalState.CurrentGame = newGame;
+            }
+        }
 
         private void GetAssetsClick(object sender, RoutedEventArgs e) {
             _assetsList.Clear();
@@ -376,28 +375,28 @@ namespace AuroraAssetEditor.Controls {
             SaveScreenshotsClick(sender, e);
         }
 
-		private void TitleFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
+        private void TitleFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
 
-		private void TitleIdFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
+        private void TitleIdFilterChanged(Object sender, TextChangedEventArgs e) => FiltersChanged(TitleFilterBox.Text, TitleIdFilterBox.Text);
 
-		private void FiltersChanged(string titleFilter, string titleIdFilter)
-		{
-			_assetView.Filter = item =>
-			{
-				var contentItem = item as AuroraDbManager.ContentItem;
-				if (contentItem == null)
-					return false;
-				if (string.IsNullOrWhiteSpace(titleFilter) && string.IsNullOrWhiteSpace(titleIdFilter))
-					return true;
-				if (!string.IsNullOrWhiteSpace(titleFilter) && !string.IsNullOrWhiteSpace(titleIdFilter))
-					return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower()) && contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
-				if (!string.IsNullOrWhiteSpace(titleFilter))
-					return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower());
-				return contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
-			};
-		}
+        private void FiltersChanged(string titleFilter, string titleIdFilter)
+        {
+            _assetView.Filter = item =>
+            {
+                var contentItem = item as AuroraDbManager.ContentItem;
+                if (contentItem == null)
+                    return false;
+                if (string.IsNullOrWhiteSpace(titleFilter) && string.IsNullOrWhiteSpace(titleIdFilter))
+                    return true;
+                if (!string.IsNullOrWhiteSpace(titleFilter) && !string.IsNullOrWhiteSpace(titleIdFilter))
+                    return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower()) && contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
+                if (!string.IsNullOrWhiteSpace(titleFilter))
+                    return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower());
+                return contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
+            };
+        }
 
-		private enum Task {
+        private enum Task {
             GetBoxart,
             GetBackground,
             GetIconBanner,

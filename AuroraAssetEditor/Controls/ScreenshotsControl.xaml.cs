@@ -1,9 +1,9 @@
 ﻿//
-// 	ScreenshotsControl.xaml.cs
-// 	AuroraAssetEditor
+//  ScreenshotsControl.xaml.cs
+//  AuroraAssetEditor
 //
-// 	Created by Swizzy on 10/05/2015
-// 	Copyright (c) 2015 Swizzy. All rights reserved.
+//  Created by Swizzy on 10/05/2015
+//  Copyright (c) 2015 Swizzy. All rights reserved.
 
 namespace AuroraAssetEditor.Controls {
     using System;
