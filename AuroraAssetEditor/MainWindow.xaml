@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:AuroraAssetEditor.Helpers"
         xmlns:controls="clr-namespace:AuroraAssetEditor.Controls"
-        Title="Aurora Asset Editor v{0}.{1}.{2} by Swizzy thanks to MaesterRowen"
-        Width="550"
-        Height="350"
-        MinWidth="550"
-        MinHeight="350"
+        Title="Aurora Asset Editor v{0}.{1}.{2}"
+        Width="1600"
+        Height="900"
+        MinWidth="1600"
+        MinHeight="900"
         AllowDrop="True"
         PreviewDragEnter="OnDragEnter">
     <Grid>
