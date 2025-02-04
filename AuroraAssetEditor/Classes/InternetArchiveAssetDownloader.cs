@@ -128,7 +128,7 @@ namespace AuroraAssetEditor.Classes
     {
         private Image _cover;
         public uint TitleId { get; set; }
-        public string MainFolder { get; set; }  // The title ID folder
+        public string MainFolder { get; set; }  // The titleID folder
         public string SubFolder { get; set; }   // The subfolder containing the actual cover
         public string AssetType { get; set; }
         public bool HaveAsset { get { return _cover != null; } }

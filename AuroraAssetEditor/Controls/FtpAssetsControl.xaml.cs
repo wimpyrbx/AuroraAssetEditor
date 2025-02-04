@@ -127,10 +127,22 @@ namespace AuroraAssetEditor.Controls {
                          };
             bw.RunWorkerCompleted += (o, args) => {
                                          _main.BusyIndicator.Visibility = Visibility.Collapsed;
-                                         if((bool)args.Result)
+                                         if((bool)args.Result) {
                                              Status.Text = "Finished grabbing FTP Assets information successfully...";
-                                         else
+                                             _main.UpdateMatchingColors();
+                                             
+                                             // Convert and update the FTP games list
+                                             var ftpGames = _assetsList.Select(item => new FtpGameInfo {
+                                                 Title = item.TitleName,
+                                                 TitleId = item.TitleId,
+                                                 DatabaseId = item.DatabaseId
+                                             }).ToList();
+                                             
+                                             _main.UpdateFtpGames(ftpGames);
+                                         }
+                                         else {
                                              Status.Text = "There was an error, check error.log for more information...";
+                                         }
                                      };
             _main.BusyIndicator.Visibility = Visibility.Visible;
             Status.Text = "Grabbing FTP Assets information...";
@@ -394,6 +406,32 @@ namespace AuroraAssetEditor.Controls {
                     return contentItem.TitleName.ToLower().Contains(titleFilter.ToLower());
                 return contentItem.TitleId.ToLower().Contains(titleIdFilter.ToLower());
             };
+        }
+
+        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var headerClicked = e.OriginalSource as GridViewColumnHeader;
+            if (headerClicked?.Column is GridViewColumn column)
+            {
+                var binding = column.DisplayMemberBinding as Binding;
+                string propertyName = binding?.Path?.Path;
+                
+                if (!string.IsNullOrEmpty(propertyName))
+                {
+                    ListCollectionView view = (ListCollectionView)CollectionViewSource.GetDefaultView(FtpAssetsBox.ItemsSource);
+                    if (view.SortDescriptions.Count > 0 &&
+                        view.SortDescriptions[0].PropertyName == propertyName)
+                    {
+                        view.SortDescriptions.Clear();
+                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Descending));
+                    }
+                    else
+                    {
+                        view.SortDescriptions.Clear();
+                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Ascending));
+                    }
+                }
+            }
         }
 
         private enum Task {

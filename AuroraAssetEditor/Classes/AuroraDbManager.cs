@@ -14,6 +14,7 @@ namespace AuroraAssetEditor.Classes {
     using System.IO;
     using System.Linq;
     using System.Threading;
+    using System.Windows.Media;
 
     internal static class AuroraDbManager {
         private static SQLiteConnection _content;
@@ -96,6 +97,8 @@ namespace AuroraAssetEditor.Classes {
             public byte[] GetIconBanner() { return App.FtpOperations.GetAssetData(string.Format("GL{0}.asset", TitleId), Path); }
 
             public byte[] GetScreenshots() { return App.FtpOperations.GetAssetData(string.Format("SS{0}.asset", TitleId), Path); }
+
+            public Brush BackgroundColor { get; set; } = Brushes.Transparent;
         }
     }
 }

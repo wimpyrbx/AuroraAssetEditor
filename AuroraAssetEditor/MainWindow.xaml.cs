@@ -17,6 +17,7 @@ namespace AuroraAssetEditor {
     using System.Reflection;
     using System.Windows;
     using System.Windows.Controls;
+    using System.Windows.Input;
     using Classes;
     using Models;
     using Controls;
@@ -25,6 +26,9 @@ namespace AuroraAssetEditor {
     using Ookii.Dialogs.Wpf;
     using Image = System.Drawing.Image;
     using Size = System.Drawing.Size;
+    using System.ComponentModel;
+    using System.Collections.ObjectModel;
+    using System.Windows.Data;
 
     /// <summary>
     ///     Interaction logic for MainWindow.xaml
@@ -44,6 +48,8 @@ namespace AuroraAssetEditor {
         private readonly UIElement[] _iconBannerMenu;
         private readonly ScreenshotsControl _screenshots;
         private readonly MenuItem[] _screenshotsMenu;
+        private readonly FtpAssetsControl _ftpAssetsControl;
+        private List<FtpGameInfo> _ftpGames = new List<FtpGameInfo>();
 
         public MainWindow(IEnumerable<string> args) {
             InitializeComponent();
@@ -145,7 +151,8 @@ namespace AuroraAssetEditor {
             #endregion
 
             OnlineAssetsTab.Content = new OnlineAssetsControl(this, _boxart, _background, _iconBanner, _screenshots);
-            FtpAssetsTab.Content = new FtpAssetsControl(this, _boxart, _background, _iconBanner, _screenshots);
+            _ftpAssetsControl = new FtpAssetsControl(this, _boxart, _background, _iconBanner, _screenshots);
+            FtpAssetsContainer.Content = _ftpAssetsControl;
 
             var bw = new BackgroundWorker();
             bw.DoWork += (sender, e) => {
@@ -541,7 +548,9 @@ namespace AuroraAssetEditor {
                 EditMenu.ItemsSource = _screenshotsMenu;
             else
                 EditMenu.ItemsSource = null;
-            EditMenu.IsEnabled = !FtpAssetsTab.IsSelected;
+            
+            // Always enable the EditMenu when tabs are selected
+            EditMenu.IsEnabled = true;
         }
 
         private void EditMenuOpened(object sender, RoutedEventArgs e) {
@@ -627,5 +636,323 @@ namespace AuroraAssetEditor {
         }
 
         private void FileOpening(object sender, ContextMenuEventArgs e) { FtpUpload.IsEnabled = App.FtpOperations.HaveSettings; }
+
+        private void LoadAssetsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string path = AssetPathTextBox.Text;
+                if (Directory.Exists(path))
+                {
+                    var folders = Directory.GetDirectories(path)
+                        .Select(folderPath => 
+                        {
+                            var folderName = Path.GetFileName(folderPath);
+                            // Split the folder name into Game Name and TitleID
+                            var parts = folderName.Split(new[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
+                            var gameName = parts.Length > 0 ? parts[0].Trim() : folderName;
+                            var titleId = parts.Length > 1 ? parts[1].Trim() : string.Empty;
+
+                            // Check for 8-character subfolder
+                            var hasSubfolder = Directory.Exists(Path.Combine(folderPath, titleId));
+
+                            // Count files
+                            int CountFiles(string pattern) => 
+                                Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories).Length;
+
+                            var boxartCount = CountFiles("boxart_*.png");
+                            var backgroundCount = CountFiles("background*.png");
+                            var bannerCount = CountFiles("banner*.png");
+                            var iconCount = CountFiles("icon*.png");
+                            var screenshotCount = CountFiles("screenshot*.png");
+
+                            return new FolderInfo
+                            {
+                                GameName = gameName,
+                                TitleId = titleId,
+                                Assets = hasSubfolder ? "✓" : "",
+                                Boxart = boxartCount > 0 ? boxartCount.ToString() : "",
+                                Back = backgroundCount > 0 ? backgroundCount.ToString() : "",
+                                Banner = bannerCount > 0 ? bannerCount.ToString() : "",
+                                Icon = iconCount > 0 ? iconCount.ToString() : "",
+                                Screens = screenshotCount > 0 ? screenshotCount.ToString() : ""
+                            };
+                        })
+                        .ToList();
+
+                    FolderListView.ItemsSource = folders;
+                    UpdateMatchingColors();
+                }
+                else
+                {
+                    MessageBox.Show("The specified path does not exist.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ShowLocalAssetsButton_Click(object sender, RoutedEventArgs e)
+        {
+            LocalAssets.Visibility = Visibility.Visible;
+        }
+
+        private void FolderListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                // Get the selected folder info
+                if (FolderListView.SelectedItem is FolderInfo selectedFolder)
+                {
+                    // Get the folder path
+                    string folderPath = Path.Combine(AssetPathTextBox.Text, $"{selectedFolder.GameName} ({selectedFolder.TitleId})");
+                    string subfolderPath = Path.Combine(folderPath, selectedFolder.TitleId);
+
+                    if (Directory.Exists(subfolderPath))
+                    {
+                        // Find all asset files in the subfolder
+                        var assetFiles = Directory.GetFiles(subfolderPath, "*.asset");
+
+                        if (assetFiles.Length > 0)
+                        {
+                            // Clear existing assets
+                            CreateNewOnClick(null, null);
+
+                            // Process each asset file
+                            foreach (var assetFile in assetFiles)
+                            {
+                                if (VerifyAuroraMagic(assetFile))
+                                {
+                                    LoadAuroraAsset(assetFile);
+                                }
+                                else if (VerifyFsdMagic(assetFile))
+                                {
+                                    LoadFsdAsset(assetFile);
+                                }
+                            }
+
+                            // Switch to the first tab with content
+                            if (_boxart.HavePreview)
+                                BoxartTab.IsSelected = true;
+                            else if (_background.HavePreview)
+                                BackgroundTab.IsSelected = true;
+                            else if (_iconBanner.HaveBanner || _iconBanner.HaveIcon)
+                                IconBannerTab.IsSelected = true;
+                            else if (_screenshots.HaveScreenshots)
+                                ScreenshotsTab.IsSelected = true;
+                        }
+                        else
+                        {
+                            MessageBox.Show("No asset files found in the subfolder.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show($"Subfolder '{selectedFolder.TitleId}' not found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void HighlightMatchingRows()
+        {
+            var ftpTitleIds = GetFtpTitleIds();
+            
+            // Highlight local assets
+            if (FolderListView.ItemsSource is List<FolderInfo> localAssets)
+            {
+                foreach (var item in localAssets)
+                {
+                    if (!string.IsNullOrEmpty(item.TitleId) && ftpTitleIds.Contains(item.TitleId))
+                    {
+                        item.BackgroundColor = System.Windows.Media.Brushes.LightGreen;
+                    }
+                    else
+                    {
+                        item.BackgroundColor = System.Windows.Media.Brushes.Transparent;
+                    }
+                }
+            }
+
+            // Highlight FTP assets
+            if (_ftpAssetsControl?.FtpAssetsBox?.ItemsSource is IEnumerable<AuroraDbManager.ContentItem> ftpAssets)
+            {
+                var localTitleIds = new HashSet<string>(
+                    (FolderListView.ItemsSource as List<FolderInfo>)?.Select(f => f.TitleId) ?? 
+                    Enumerable.Empty<string>());
+
+                foreach (var item in ftpAssets)
+                {
+                    if (!string.IsNullOrEmpty(item.TitleId) && localTitleIds.Contains(item.TitleId))
+                    {
+                        item.BackgroundColor = System.Windows.Media.Brushes.LightGreen;
+                    }
+                    else
+                    {
+                        item.BackgroundColor = System.Windows.Media.Brushes.Transparent;
+                    }
+                }
+            }
+        }
+
+        private HashSet<string> GetFtpTitleIds()
+        {
+            return new HashSet<string>(_ftpGames.Select(g => g.TitleId));
+        }
+
+        public void UpdateFtpGames(List<FtpGameInfo> games)
+        {
+            _ftpGames = games;
+            // If local assets are already loaded, update their highlighting
+            if (FolderListView.ItemsSource != null)
+            {
+                HighlightMatchingRows();
+            }
+        }
+
+        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            var headerClicked = e.OriginalSource as GridViewColumnHeader;
+            if (headerClicked?.Column is GridViewColumn column)
+            {
+                var binding = column.DisplayMemberBinding as Binding;
+                string propertyName = binding?.Path?.Path;
+                
+                if (!string.IsNullOrEmpty(propertyName))
+                {
+                    var view = CollectionViewSource.GetDefaultView(FolderListView.ItemsSource);
+                    if (view.SortDescriptions.Count > 0 &&
+                        view.SortDescriptions[0].PropertyName == propertyName)
+                    {
+                        view.SortDescriptions.Clear();
+                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Descending));
+                    }
+                    else
+                    {
+                        view.SortDescriptions.Clear();
+                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Ascending));
+                    }
+                }
+            }
+        }
+
+        public void UpdateMatchingColors()
+        {
+            // Only proceed if both lists have items
+            var localAssets = FolderListView?.ItemsSource as List<FolderInfo>;
+            var ftpAssets = _ftpAssetsControl?.FtpAssetsBox?.ItemsSource as IEnumerable<AuroraDbManager.ContentItem>;
+            
+            if (localAssets == null || ftpAssets == null || !localAssets.Any() || !ftpAssets.Any())
+                return;
+
+            // Create lookup sets with normalized TitleIDs
+            var localTitleIds = new HashSet<string>(
+                localAssets.Select(f => f.TitleId?.ToUpper()?.Trim())
+                .Where(id => !string.IsNullOrEmpty(id)));
+            
+            var ftpTitleIds = new HashSet<string>(
+                ftpAssets.Select(f => f.TitleId?.ToUpper()?.Trim())
+                .Where(id => !string.IsNullOrEmpty(id)));
+
+            // Debug output
+            System.Diagnostics.Debug.WriteLine($"Local TitleIDs: {string.Join(", ", localTitleIds)}");
+            System.Diagnostics.Debug.WriteLine($"FTP TitleIDs: {string.Join(", ", ftpTitleIds)}");
+
+            // Update local assets colors
+            foreach (var item in localAssets)
+            {
+                var normalizedTitleId = item.TitleId?.ToUpper()?.Trim();
+                item.BackgroundColor = !string.IsNullOrEmpty(normalizedTitleId) && ftpTitleIds.Contains(normalizedTitleId)
+                    ? System.Windows.Media.Brushes.LightGreen
+                    : System.Windows.Media.Brushes.Transparent;
+                
+                System.Diagnostics.Debug.WriteLine($"Local: {item.GameName} ({normalizedTitleId}) - Match: {ftpTitleIds.Contains(normalizedTitleId)}");
+            }
+
+            // Update FTP assets colors
+            foreach (var item in ftpAssets)
+            {
+                var normalizedTitleId = item.TitleId?.ToUpper()?.Trim();
+                item.BackgroundColor = !string.IsNullOrEmpty(normalizedTitleId) && localTitleIds.Contains(normalizedTitleId)
+                    ? System.Windows.Media.Brushes.LightGreen
+                    : System.Windows.Media.Brushes.Transparent;
+                
+                System.Diagnostics.Debug.WriteLine($"FTP: {item.TitleName} ({normalizedTitleId}) - Match: {localTitleIds.Contains(normalizedTitleId)}");
+            }
+
+            // Force ListView updates
+            FolderListView.Items.Refresh();
+            _ftpAssetsControl.FtpAssetsBox.Items.Refresh();
+        }
+
+        private void LocalTitleFilterChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyLocalFilters();
+        }
+
+        private void LocalTitleIdFilterChanged(object sender, TextChangedEventArgs e)
+        {
+            ApplyLocalFilters();
+        }
+
+        private void ApplyLocalFilters()
+        {
+            var view = CollectionViewSource.GetDefaultView(FolderListView.ItemsSource);
+            if (view == null) return;
+
+            var titleFilter = LocalTitleFilterBox.Text.ToLower();
+            var titleIdFilter = LocalTitleIdFilterBox.Text.ToLower();
+
+            view.Filter = item =>
+            {
+                if (item is FolderInfo folder)
+                {
+                    if (string.IsNullOrWhiteSpace(titleFilter) && string.IsNullOrWhiteSpace(titleIdFilter))
+                        return true;
+
+                    if (!string.IsNullOrWhiteSpace(titleFilter) && !string.IsNullOrWhiteSpace(titleIdFilter))
+                        return folder.GameName.ToLower().Contains(titleFilter) && 
+                               folder.TitleId.ToLower().Contains(titleIdFilter);
+
+                    if (!string.IsNullOrWhiteSpace(titleFilter))
+                        return folder.GameName.ToLower().Contains(titleFilter);
+
+                    return folder.TitleId.ToLower().Contains(titleIdFilter);
+                }
+                return false;
+            };
+        }
+
+        private void ShowFtpAssets()
+        {
+            EditMenu.ItemsSource = null;
+            EditMenu.IsEnabled = false;
+        }
+    }
+
+    public class FolderInfo
+    {
+        public string GameName { get; set; }
+        public string TitleId { get; set; }
+        public string Assets { get; set; }
+        public string Boxart { get; set; }
+        public string Back { get; set; }
+        public string Banner { get; set; }
+        public string Icon { get; set; }
+        public string Screens { get; set; }
+        public System.Windows.Media.Brush BackgroundColor { get; set; } = System.Windows.Media.Brushes.Transparent;
+    }
+
+    public class FtpGameInfo
+    {
+        public string Title { get; set; }
+        public string TitleId { get; set; }
+        public string DatabaseId { get; set; }
     }
 }
