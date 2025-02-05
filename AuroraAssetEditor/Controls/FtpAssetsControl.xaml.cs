@@ -228,7 +228,6 @@ namespace AuroraAssetEditor.Controls {
                                     if (localBoxart != null)
                                     {
                                         localBoxart.Source = ConvertToImageSource(aurora.GetBoxart());
-                                        _main.VisualAssetsTab.IsSelected = true;
                                     }
                                 }
                                 break;
@@ -239,7 +238,6 @@ namespace AuroraAssetEditor.Controls {
                                     if (localBackground != null)
                                     {
                                         localBackground.Source = ConvertToImageSource(aurora.GetBackground());
-                                        _main.VisualAssetsTab.IsSelected = true;
                                     }
                                 }
                                 break;
@@ -256,7 +254,6 @@ namespace AuroraAssetEditor.Controls {
                                     {
                                         localBanner.Source = ConvertToImageSource(aurora.GetBanner());
                                     }
-                                    _main.VisualAssetsTab.IsSelected = true;
                                 }
                                 break;
                             case Task.GetScreenshots:
@@ -271,7 +268,6 @@ namespace AuroraAssetEditor.Controls {
                                             imageControl.Source = ConvertToImageSource(screenshots[i]);
                                         }
                                     }
-                                    _main.VisualAssetsTab.IsSelected = true;
                                 }
                                 break;
                             default:
@@ -483,16 +479,6 @@ namespace AuroraAssetEditor.Controls {
                     }
                 }
             }
-        }
-
-        private void OnDragEnter(object sender, DragEventArgs e)
-        {
-            _main.OnDragEnter(sender, e);
-        }
-
-        private void OnDrop(object sender, DragEventArgs e)
-        {
-            _main.DragDrop(sender, e);
         }
 
         private void FtpAssetsBoxContextOpening(object sender, ContextMenuEventArgs e)

@@ -61,6 +61,7 @@
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
     <PackageReference Include="System.Net.FtpClient" Version="1.0.5824.34026" />
+    <Reference Include="System.Configuration" />
   </ItemGroup>
 
   <ItemGroup>

@@ -66,7 +66,6 @@ namespace AuroraAssetEditor.Classes
             var result = new Dictionary<string, string>();
 
             // Read existing MD5s if file exists
-            var validMd5s = new HashSet<string>();
             if (File.Exists(md5FilePath))
             {
                 foreach (var line in File.ReadAllLines(md5FilePath))
@@ -75,49 +74,6 @@ namespace AuroraAssetEditor.Classes
                     if (parts.Length == 2)
                     {
                         result[parts[0]] = parts[1];
-                        validMd5s.Add(parts[1].ToLowerInvariant());
-                    }
-                }
-            }
-
-            // Clean up orphaned cache files
-            var localCachePath = Path.Combine(CacheFolder, LocalFolder);
-            if (Directory.Exists(localCachePath))
-            {
-                foreach (var titleIdDir in Directory.GetDirectories(localCachePath))
-                {
-                    foreach (var cacheFile in Directory.GetFiles(titleIdDir, "*-*.png"))
-                    {
-                        // Extract MD5 from filename (format is assettype-md5.png)
-                        var fileName = Path.GetFileNameWithoutExtension(cacheFile);
-                        var md5 = fileName.Split('-').LastOrDefault();
-                        
-                        if (md5 != null && !validMd5s.Contains(md5.ToLowerInvariant()))
-                        {
-                            try
-                            {
-                                File.Delete(cacheFile);
-                                Debug.WriteLine($"Deleted orphaned cache file: {cacheFile}");
-                            }
-                            catch (Exception ex)
-                            {
-                                MainWindow.SaveError(ex);
-                            }
-                        }
-                    }
-
-                    // Clean up empty directories
-                    if (!Directory.EnumerateFileSystemEntries(titleIdDir).Any())
-                    {
-                        try
-                        {
-                            Directory.Delete(titleIdDir);
-                            Debug.WriteLine($"Deleted empty cache directory: {titleIdDir}");
-                        }
-                        catch (Exception ex)
-                        {
-                            MainWindow.SaveError(ex);
-                        }
                     }
                 }
             }
@@ -127,10 +83,11 @@ namespace AuroraAssetEditor.Classes
             return result;
         }
 
-        public static Dictionary<string, (string FilePath, string Hash)> CheckFolderCache(string folderPath, string titleId)
+        public static Dictionary<string, (string FilePath, string Hash, bool HasCache)> CheckFolderCache(string folderPath, string titleId)
         {
-            var result = new Dictionary<string, (string FilePath, string Hash)>();
-            var assetsRootPath = Path.GetDirectoryName(folderPath);
+            var result = new Dictionary<string, (string FilePath, string Hash, bool HasCache)>();
+            // Get the root path (the directory containing the game folders)
+            var assetsRootPath = Path.GetDirectoryName(Path.GetDirectoryName(folderPath));
             var md5Dict = GetMd5Cache(assetsRootPath);
             
             // Check each asset type using the MD5s from file
@@ -180,7 +137,7 @@ namespace AuroraAssetEditor.Classes
         }
 
         private static void CheckAssetCache(string folderPath, string titleId, string searchPattern, string assetType, 
-            Dictionary<string, (string FilePath, string Hash)> result, Dictionary<string, string> md5Dict, string assetsRootPath)
+            Dictionary<string, (string FilePath, string Hash, bool HasCache)> result, Dictionary<string, string> md5Dict, string assetsRootPath)
         {
             try
             {
@@ -211,22 +168,27 @@ namespace AuroraAssetEditor.Classes
                             for (int i = 0; i < screenshots.Length; i++)
                             {
                                 var screenshotCachePath = GetCachePath(titleId, $"screenshot{i + 1}", hash);
-                                if (!File.Exists(screenshotCachePath) && screenshots[i] != null)
+                                bool hasCache = File.Exists(screenshotCachePath);
+                                
+                                if (!hasCache && screenshots[i] != null)
                                 {
                                     using (var thumbnail = CreateThumbnail(screenshots[i], "screenshot"))
                                     {
                                         Directory.CreateDirectory(Path.GetDirectoryName(screenshotCachePath));
                                         thumbnail.Save(screenshotCachePath, ImageFormat.Png);
+                                        hasCache = true;
                                     }
                                 }
-                                result[$"screenshot{i + 1}"] = (file, hash);
+                                result[$"screenshot{i + 1}"] = (file, hash, hasCache);
                             }
                         }
                     }
                     else
                     {
                         var cachePath = GetCachePath(titleId, assetType, hash);
-                        if (!File.Exists(cachePath))
+                        bool hasCache = File.Exists(cachePath);
+                        
+                        if (!hasCache)
                         {
                             var assetBytes = File.ReadAllBytes(file);
                             var asset = new AuroraAsset.AssetFile(assetBytes);
@@ -243,9 +205,10 @@ namespace AuroraAssetEditor.Classes
                             if (image != null)
                             {
                                 CacheImage(image, hash, titleId, assetType);
+                                hasCache = true;
                             }
                         }
-                        result[assetType] = (file, hash);
+                        result[assetType] = (file, hash, hasCache);
                     }
                 }
             }
@@ -271,37 +234,57 @@ namespace AuroraAssetEditor.Classes
 
         public static BitmapImage GetCachedImage(string assetPath, string titleId, string assetType)
         {
-            if (!File.Exists(assetPath)) return null;
+            if (!File.Exists(assetPath))
+            {
+                Debug.WriteLine($"Asset file does not exist: {assetPath}");
+                return null;
+            }
 
-            var assetsRootPath = Path.GetDirectoryName(Path.GetDirectoryName(assetPath)); // Go up two levels to get root
+            // Get the root path (the directory containing the game folders)
+            var assetsRootPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(assetPath)));
+            Debug.WriteLine($"Assets root path: {assetsRootPath}");
+
             var relativePath = GetRelativePath(assetsRootPath, assetPath).Replace('\\', '/');
+            Debug.WriteLine($"Relative path: {relativePath}");
+
             var md5Dict = GetMd5Cache(assetsRootPath);
+            Debug.WriteLine($"MD5 cache entries: {md5Dict.Count}");
 
             string hash;
             if (!md5Dict.TryGetValue(relativePath, out hash))
             {
-                return null;
+                Debug.WriteLine($"No MD5 hash found for: {relativePath}");
+                // Calculate hash directly if not in cache
+                hash = CalculateFileHash(assetPath);
+                UpdateMd5File(assetsRootPath, relativePath, hash);
             }
+            Debug.WriteLine($"Hash: {hash}");
 
             // Handle numbered screenshots
             if (assetType.StartsWith("screenshot") && assetType.Length > 10)
             {
                 string screenshotNumber = assetType.Substring(10); // Get the number after "screenshot"
                 string cachePath = GetCachePath(titleId, $"screenshot{screenshotNumber}", hash);
+                Debug.WriteLine($"Screenshot cache path: {cachePath}");
 
-                // If cache exists and is newer than asset file, use it
                 if (File.Exists(cachePath))
                 {
+                    Debug.WriteLine($"Found screenshot cache file: {cachePath}");
                     return LoadImageFromCache(cachePath);
                 }
+                Debug.WriteLine($"Cache file not found: {cachePath}");
             }
             else
             {
                 string cachePath = GetCachePath(titleId, assetType, hash);
+                Debug.WriteLine($"Cache path: {cachePath}");
+
                 if (File.Exists(cachePath))
                 {
+                    Debug.WriteLine($"Found cache file: {cachePath}");
                     return LoadImageFromCache(cachePath);
                 }
+                Debug.WriteLine($"Cache file not found: {cachePath}");
             }
 
             return null;
@@ -403,13 +386,9 @@ namespace AuroraAssetEditor.Classes
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.CreateOptions = BitmapCreateOptions.None;
-                using (var stream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                {
-                    bitmap.StreamSource = stream;
-                    bitmap.EndInit();
-                    bitmap.Freeze(); // Makes the image thread-safe
-                }
+                bitmap.UriSource = new Uri(cachePath, UriKind.RelativeOrAbsolute);
+                bitmap.EndInit();
+                bitmap.Freeze();
                 return bitmap;
             }
             catch (Exception ex)
@@ -434,6 +413,108 @@ namespace AuroraAssetEditor.Classes
             {
                 MainWindow.SaveError(ex);
             }
+        }
+
+        // Add a separate method for cleanup that can be called manually if needed
+        public static void CleanupOrphanedCacheFiles(string assetsPath)
+        {
+            var md5FilePath = Path.Combine(assetsPath, "md5.txt");
+            var validMd5s = new HashSet<string>();
+
+            // Read valid MD5s from file
+            if (File.Exists(md5FilePath))
+            {
+                foreach (var line in File.ReadAllLines(md5FilePath))
+                {
+                    var parts = line.Split(new[] { ':' }, 2);
+                    if (parts.Length == 2)
+                    {
+                        validMd5s.Add(parts[1].ToLowerInvariant());
+                    }
+                }
+            }
+
+            // Clean up orphaned cache files
+            var localCachePath = Path.Combine(CacheFolder, LocalFolder);
+            if (Directory.Exists(localCachePath))
+            {
+                foreach (var titleIdDir in Directory.GetDirectories(localCachePath))
+                {
+                    foreach (var cacheFile in Directory.GetFiles(titleIdDir, "*-*.png"))
+                    {
+                        // Extract MD5 from filename (format is assettype-md5.png)
+                        var fileName = Path.GetFileNameWithoutExtension(cacheFile);
+                        var md5 = fileName.Split('-').LastOrDefault();
+                        
+                        if (md5 != null && !validMd5s.Contains(md5.ToLowerInvariant()))
+                        {
+                            try
+                            {
+                                File.Delete(cacheFile);
+                                Debug.WriteLine($"Deleted orphaned cache file: {cacheFile}");
+                            }
+                            catch (Exception ex)
+                            {
+                                MainWindow.SaveError(ex);
+                            }
+                        }
+                    }
+
+                    // Clean up empty directories
+                    if (!Directory.EnumerateFileSystemEntries(titleIdDir).Any())
+                    {
+                        try
+                        {
+                            Directory.Delete(titleIdDir);
+                            Debug.WriteLine($"Deleted empty cache directory: {titleIdDir}");
+                        }
+                        catch (Exception ex)
+                        {
+                            MainWindow.SaveError(ex);
+                        }
+                    }
+                }
+            }
+        }
+
+        public static bool HasAllCacheFiles(string assetPath, string titleId)
+        {
+            if (!File.Exists(assetPath)) return false;
+
+            // Get the root path (the directory containing the game folders)
+            var assetsRootPath = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(assetPath)));
+            var relativePath = GetRelativePath(assetsRootPath, assetPath).Replace('\\', '/');
+            var md5Dict = GetMd5Cache(assetsRootPath);
+
+            string hash;
+            if (!md5Dict.TryGetValue(relativePath, out hash))
+            {
+                hash = CalculateFileHash(assetPath);
+            }
+
+            // Check if all possible cache files exist based on the asset filename
+            var filename = Path.GetFileName(assetPath);
+            if (filename.StartsWith("GC"))
+            {
+                return File.Exists(GetCachePath(titleId, "boxart", hash));
+            }
+            else if (filename.StartsWith("BK"))
+            {
+                return File.Exists(GetCachePath(titleId, "background", hash));
+            }
+            else if (filename.StartsWith("GL"))
+            {
+                return File.Exists(GetCachePath(titleId, "banner", hash)) &&
+                       File.Exists(GetCachePath(titleId, "icon", hash));
+            }
+            else if (filename.StartsWith("SS"))
+            {
+                // For screenshots, check if at least the first screenshot exists
+                // If it does, we assume the asset has been processed
+                return File.Exists(GetCachePath(titleId, "screenshot1", hash));
+            }
+
+            return false;
         }
     }
 } 
