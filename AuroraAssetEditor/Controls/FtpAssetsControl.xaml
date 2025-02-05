@@ -87,14 +87,9 @@
                     </ListView.Style>
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem">
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             <Setter Property="Background" Value="{Binding BackgroundColor}"/>
-                            <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
-                            <Style.Resources>
-                                <!-- Keep selection style even when not focused -->
-                                <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}"/>
-                                <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}"/>
-                            </Style.Resources>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="ToolTip" Value="{Binding BackgroundColor}"/>
                         </Style>
                     </ListView.ItemContainerStyle>
                     <ListView.View>

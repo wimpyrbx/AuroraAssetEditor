@@ -15,6 +15,8 @@ namespace AuroraAssetEditor.Classes {
     using System.Linq;
     using System.Threading;
     using System.Windows.Media;
+    using System.ComponentModel;
+    using AuroraAssetEditor.Models;
 
     internal static class AuroraDbManager {
         private static SQLiteConnection _content;
@@ -44,13 +46,18 @@ namespace AuroraAssetEditor.Classes {
             var ret = GetContentItems().Select(item => item).ToList();
             _content.Close();
             GC.Collect();
-            while(true) {
-                try {
-                    File.Delete(path);
-                    break;
-                }
-                catch(IOException) {
-                    Thread.Sleep(100);
+
+            // Only delete the file if it's not our debug file
+            if (!path.EndsWith("content.debug.db", StringComparison.OrdinalIgnoreCase))
+            {
+                while(true) {
+                    try {
+                        File.Delete(path);
+                        break;
+                    }
+                    catch(IOException) {
+                        Thread.Sleep(100);
+                    }
                 }
             }
             return ret;
@@ -58,7 +65,9 @@ namespace AuroraAssetEditor.Classes {
 
         private static IEnumerable<ContentItem> GetContentItems() { return GetContentDataTable("SELECT * FROM ContentItems").Select().Select(row => new ContentItem(row)).ToArray(); }
 
-        internal class ContentItem {
+        internal class ContentItem : INotifyPropertyChanged, IAssetItem {
+            private System.Windows.Media.Brush _backgroundColor = System.Windows.Media.Brushes.Transparent;
+
             public ContentItem(DataRow row) {
                 DatabaseId = ((int)((long)row["Id"])).ToString("X08");
                 TitleId = ((int)((long)row["TitleId"])).ToString("X08");
@@ -98,7 +107,28 @@ namespace AuroraAssetEditor.Classes {
 
             public byte[] GetScreenshots() { return App.FtpOperations.GetAssetData(string.Format("SS{0}.asset", TitleId), Path); }
 
-            public Brush BackgroundColor { get; set; } = Brushes.Transparent;
+            public System.Windows.Media.Brush BackgroundColor
+            {
+                get => _backgroundColor;
+                set
+                {
+                    if (_backgroundColor != value)
+                    {
+                        _backgroundColor = value;
+                        OnPropertyChanged(nameof(BackgroundColor));
+                    }
+                }
+            }
+
+            public event PropertyChangedEventHandler PropertyChanged;
+
+            protected virtual void OnPropertyChanged(string propertyName)
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            }
+
+            // IAssetItem implementation
+            public string Title => TitleName;
         }
     }
 }

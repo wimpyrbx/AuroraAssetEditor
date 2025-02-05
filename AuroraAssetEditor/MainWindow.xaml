@@ -5,39 +5,42 @@
         xmlns:controls="clr-namespace:AuroraAssetEditor.Controls"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="AuroraAssetEditor.MainWindow"
         Title="Aurora Asset Editor v{0}.{1}.{2} by Swizzy thanks to MaesterRowen"
-        Width="1280"
+        Width="1422"
         Height="600"
         MinWidth="1280"
         MinHeight="600"
         AllowDrop="True"
         PreviewDragEnter="OnDragEnter">
+
+    <!-- Main Grid container -->
     <Grid>
-        <Grid Panel.ZIndex="0">
+        <!-- Content Grid -->
+        <Grid Panel.ZIndex="0" Margin="0,1,0,-1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="450"/>
+                <!-- For FTP Assets -->
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="450"/>  <!-- For Local Assets -->
-                <ColumnDefinition Width="450"/>  <!-- For FTP Assets -->
+                <!-- For Tabs -->
+                <ColumnDefinition Width="62"/>
+                <ColumnDefinition Width="388"/>
+                <!-- For Local Assets -->
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+
+            <!-- Menu -->
             <Menu
                   VerticalAlignment="Center"
                   Background="White"
-                  Grid.ColumnSpan="3" Height="18">
+                  Grid.ColumnSpan="4" Height="18">
                 <MenuItem ContextMenuOpening="FileOpening" Header="File">
                     <MenuItem Click="CreateNewOnClick" Header="Create New Asset File" />
                     <MenuItem Click="LoadAssetOnClick" Header="Load Asset File" />
-                    <MenuItem Click="SaveAllAssetsOnClick" Header="Save All Assets" />
                     <MenuItem x:Name="FtpUpload"
                               Click="SaveAllAssetsFtpOnClick"
                               Header="Save All Assets to FTP" />
-                    <Separator />
-                    <MenuItem Click="SaveBoxartOnClick" Header="Save Boxart/Cover Asset" />
-                    <MenuItem Click="SaveBackgroundOnClick" Header="Save Background Asset" />
-                    <MenuItem Click="SaveScreenshotsOnClick" Header="Save Screenshots Asset" />
-                    <MenuItem Click="SaveIconBannerOnClick" Header="Save Icon/Banner Asset" />
                     <Separator />
                     <MenuItem Click="ExitOnClick" Header="Exit" />
                 </MenuItem>
@@ -70,24 +73,84 @@
                 <MenuItem x:Name="ViewMenu" Header="View">
                     <MenuItem Header="FTP Assets" Click="ShowFtpAssets"/>
                 </MenuItem>
+                <MenuItem Header="Debug" Click="MenuItem_Click">
+                    <MenuItem Header="Test Coloring" Click="TestColoring_Click"/>
+                </MenuItem>
             </Menu>
+
+            <!-- FTP Assets Container -->
+            <ContentControl x:Name="FtpAssetsContainer"
+                           Grid.Row="1"
+                           Grid.Column="0"
+                           Margin="10,10,10,10"/>
+
+            <!-- Tabs -->
             <TabControl Grid.Row="1"
-                        Grid.Column="0"
-                        Margin="10,10,10,10"
+                        Grid.Column="1"
+                        Margin="10,185,10,-15"
                         SelectionChanged="TabChanged">
-                <TabItem x:Name="BoxartTab" Header="Boxart/Cover" />
-                <TabItem x:Name="BackgroundTab" Header="Background" />
-                <TabItem x:Name="IconBannerTab" Header="Icon/Banner" />
-                <TabItem x:Name="ScreenshotsTab" Header="Screenshots" />
+                <TabItem x:Name="VisualAssetsTab" Header="Visual Assets">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Banner and Icon Row -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Banner on left -->
+                            <GroupBox Header="Banner" Grid.Column="0" Margin="5">
+                                <Viewbox Stretch="Uniform" HorizontalAlignment="Left" 
+                                        MaxWidth="420" MaxHeight="96">
+                                    <Image x:Name="BannerImage" Width="420" Height="96"/>
+                                </Viewbox>
+                            </GroupBox>
+
+                            <!-- Icon on right -->
+                            <GroupBox Header="Icon" Grid.Column="1" Margin="5">
+                                <Viewbox Stretch="Uniform" MaxWidth="64" MaxHeight="64">
+                                    <Image x:Name="IconImage" Width="64" Height="64"/>
+                                </Viewbox>
+                            </GroupBox>
+                        </Grid>
+
+                        <!-- Boxart and Background Row -->
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+
+                        <!-- Screenshots Row -->
+                        <Grid Grid.Row="1" Margin="0,183,0,0" Height="152" VerticalAlignment="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </Grid>
+                </TabItem>
                 <TabItem x:Name="OnlineAssetsTab"
                          Header="Online Assets"
                          x:FieldModifier="private" />
             </TabControl>
+
+            <!-- Local Assets -->
             <GroupBox Header="Local Assets" 
                       BorderBrush="Black" 
                       Grid.Row="1" 
-                      Grid.Column="1" 
-                      Margin="0,10,10,10">
+                      Grid.Column="2" 
+                      Margin="10,10,0,0" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="430" Height="546" VerticalAlignment="Top">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -100,7 +163,6 @@
                     </Grid.ColumnDefinitions>
 
                     <TextBox x:Name="AssetPathTextBox" 
-                        Text="C:\Users\larst\OneDrive\EMULATOR-AND-SYSTEM DATA\XBOX360\Tools\AuroraAssetEditor\Temp\# Completed"
                         FontSize="10"
                         Padding="5,2,5,0"
                         Grid.ColumnSpan="2"
@@ -123,147 +185,188 @@
                         <TextBox x:Name="LocalTitleIdFilterBox" TextChanged="LocalTitleIdFilterChanged"/>
                     </GroupBox>
 
-                    <ListView x:Name="FolderListView"
-                        Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                        BorderThickness="1"
-                        FontSize="10"
-                        BorderBrush="Gray" 
-                        Margin="5"
-                        MouseDoubleClick="FolderListView_MouseDoubleClick">
-                        <ListView.ItemContainerStyle>
-                            <Style TargetType="ListViewItem">
-                                <Setter Property="Background" Value="{Binding BackgroundColor}"/>
-                            </Style>
-                        </ListView.ItemContainerStyle>
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Title Name" DisplayMemberBinding="{Binding GameName}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                            <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="TitleID" DisplayMemberBinding="{Binding TitleId}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Assets" Width="40" DisplayMemberBinding="{Binding Assets}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Boxart" Width="40" DisplayMemberBinding="{Binding Boxart}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Back" Width="40" DisplayMemberBinding="{Binding Back}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Banner" Width="40" DisplayMemberBinding="{Binding Banner}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Icon" Width="40" DisplayMemberBinding="{Binding Icon}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="Screens" Width="40" DisplayMemberBinding="{Binding Screens}">
-                                    <GridViewColumn.HeaderContainerStyle>
-                                        <Style TargetType="GridViewColumnHeader">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                        </Style>
-                                    </GridViewColumn.HeaderContainerStyle>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
+                    <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
+                        <ListView x:Name="FolderListView"
+                            BorderThickness="1"
+                            FontSize="10"
+                            BorderBrush="Gray" 
+                            Margin="5"
+                            SelectionChanged="FolderListView_SelectionChanged">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Background" Value="{Binding BackgroundColor}"/>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Title Name" DisplayMemberBinding="{Binding GameName}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                                <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="TitleID" DisplayMemberBinding="{Binding TitleId}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Assets" Width="40" DisplayMemberBinding="{Binding Assets}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Boxart" Width="40" DisplayMemberBinding="{Binding Boxart}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Back" Width="40" DisplayMemberBinding="{Binding Back}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Banner" Width="40" DisplayMemberBinding="{Binding Banner}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Icon" Width="40" DisplayMemberBinding="{Binding Icon}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Screens" Width="40" DisplayMemberBinding="{Binding Screens}">
+                                        <GridViewColumn.HeaderContainerStyle>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                            </Style>
+                                        </GridViewColumn.HeaderContainerStyle>
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" HorizontalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+
+                        <Border x:Name="ListViewBusyIndicator" 
+                               Background="#80000000" 
+                               Visibility="Collapsed">
+                            <StackPanel HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="Loading Assets..." 
+                                         Foreground="White" 
+                                         FontSize="16" 
+                                         Margin="0,0,0,10"/>
+                                <ProgressBar IsIndeterminate="True" 
+                                           Width="200" 
+                                           Height="2"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Grid>
             </GroupBox>
-            <ContentControl x:Name="FtpAssetsContainer"
-                           Grid.Row="1"
-                           Grid.Column="2"
-                           Margin="0,10,10,10"/>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="20,109,412,370">
+                <Image x:Name="local_screenshot1" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="115,109,317,370">
+                <Image x:Name="local_screenshot2" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="210,109,222,370">
+                <Image x:Name="local_screenshot3" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="305,109,127,370">
+                <Image x:Name="local_screenshot4" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="400,109,32,370">
+                <Image x:Name="local_screenshot5" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="20,17,412,462">
+                <Image x:Name="local_boxart" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="115,17,317,462">
+                <Image x:Name="local_background" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="210,17,222,462">
+                <Image x:Name="local_banner" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
+            <Grid Grid.Column="1" Grid.Row="1" Background="#FFE46767" Margin="305,17,127,462">
+                <Image x:Name="local_icon" Stretch="Fill" Margin="10,10,10,10"/>
+            </Grid>
         </Grid>
 
-        <!-- Add LocalAssets Grid -->
+        <!-- Overlay Grid for LocalAssets -->
         <Grid x:Name="LocalAssets"
               Visibility="Collapsed"
               Panel.ZIndex="1">
             <Grid.Background>
                 <SolidColorBrush Opacity="0.7" Color="DimGray" />
             </Grid.Background>
-            <Border BorderBrush="Gray" BorderThickness="1" Background="WhiteSmoke" Padding="10">
+            <Border BorderBrush="Gray" 
+                    BorderThickness="1" 
+                    Background="WhiteSmoke" 
+                    Padding="10">
                 <Grid MinWidth="300"
                       MinHeight="300"
-                      HorizontalAlignment="Center"
+                  HorizontalAlignment="Center"
                       VerticalAlignment="Center">
-                    <!-- Add BusyIndicator -->
-                    <ProgressBar x:Name="BusyIndicator" 
-                                 Grid.RowSpan="4"
-                                 Visibility="Collapsed"
-                                 IsIndeterminate="True"
-                                 Height="10"
-                                 VerticalAlignment="Bottom"/>
+                    <ProgressBar x:Name="GlobalBusyIndicator" 
+                               Grid.RowSpan="4"
+                               Visibility="Collapsed"
+                               IsIndeterminate="True"
+                               Height="10"
+                               VerticalAlignment="Bottom"/>
                 </Grid>
             </Border>
         </Grid>

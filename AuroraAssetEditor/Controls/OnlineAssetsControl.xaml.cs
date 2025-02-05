@@ -16,11 +16,14 @@ namespace AuroraAssetEditor.Controls {
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Input;
+    using System.Windows.Media;
     using System.Windows.Media.Imaging;
     using AuroraAssetEditor.Helpers;
     using Classes;
     using System.Linq;
+    using Microsoft.Win32;
     using Image = System.Drawing.Image;
+    using WpfImage = System.Windows.Controls.Image;
 
     /// <summary>
     ///     Interaction logic for OnlineAssetsControl.xaml
@@ -32,15 +35,11 @@ namespace AuroraAssetEditor.Controls {
             ArchiveOption = 1,
             XboxComOption = 2
         }
-        private readonly BackgroundControl _background;
         private readonly UIElement[] _backgroundMenu;
         private readonly UIElement[] _bannerMenu;
-        private readonly BoxartControl _boxart;
         private readonly UIElement[] _coverMenu;
-        private readonly IconBannerControl _iconBanner;
         private readonly UIElement[] _iconMenu;
         private readonly MainWindow _main;
-        private readonly ScreenshotsControl _screenshots;
         private readonly UIElement[] _screenshotsMenu;
         private readonly BackgroundWorker _unityWorker = new BackgroundWorker();
         private readonly XboxAssetDownloader _xboxAssetDownloader = new XboxAssetDownloader();
@@ -55,16 +54,12 @@ namespace AuroraAssetEditor.Controls {
         private XboxTitleInfo[] _xboxResult;
         private InternetArchiveAsset[] _archiveResult;
 
-        public OnlineAssetsControl(MainWindow main, BoxartControl boxart, BackgroundControl background, IconBannerControl iconBanner, ScreenshotsControl screenshots) {
+        public OnlineAssetsControl(MainWindow main) {
             InitializeComponent();
             GlobalState.GameChanged += OnGameChanged;
             XboxAssetDownloader.StatusChanged += StatusChanged;
             _main = main;
-            _boxart = boxart;
-            _background = background;
-            _iconBanner = iconBanner;
-            _screenshots = screenshots;
-            SourceBox.SelectedIndex = (int) OnlineAssetSources.XboxUnityOption;
+            SourceBox.SelectedIndex = (int)OnlineAssetSources.XboxUnityOption;
 
             #region Xbox.com Locale worker
 
@@ -184,84 +179,84 @@ namespace AuroraAssetEditor.Controls {
 
             #endregion
 
-
             #region Cover Menu
-
             _coverMenu = new UIElement[] {
-                                             new MenuItem {
-                                                              Header = "Save cover to file"
-                                                          },
-                                             new MenuItem {
-                                                              Header = "Set as cover"
-                                                          }
-                                         };
-            ((MenuItem)_coverMenu[0]).Click += (sender, args) => MainWindow.SaveToFile(_img, "Select where to save the cover", "cover.png");
-            ((MenuItem)_coverMenu[1]).Click += (sender, args) => _boxart.Load(_img);
-
+                new MenuItem { Header = "Save cover to file" },
+                new MenuItem { Header = "Set as cover" }
+            };
+            ((MenuItem)_coverMenu[0]).Click += (sender, args) => SaveToFile(_img, "Select where to save the cover", "cover.png");
+            ((MenuItem)_coverMenu[1]).Click += (sender, args) => {
+                var localBoxart = _main.FindName("local_boxart") as WpfImage;
+                if (localBoxart != null)
+                {
+                    localBoxart.Source = ConvertToImageSource(_img);
+                }
+            };
             #endregion
 
             #region Icon Menu
-
             _iconMenu = new UIElement[] {
-                                            new MenuItem {
-                                                             Header = "Save icon to file"
-                                                         },
-                                            new MenuItem {
-                                                             Header = "Set as icon"
-                                                         }
-                                        };
-            ((MenuItem)_iconMenu[0]).Click += (sender, args) => MainWindow.SaveToFile(_img, "Select where to save the icon", "icon.png");
-            ((MenuItem)_iconMenu[1]).Click += (sender, args) => _iconBanner.Load(_img, true);
-
+                new MenuItem { Header = "Save icon to file" },
+                new MenuItem { Header = "Set as icon" }
+            };
+            ((MenuItem)_iconMenu[0]).Click += (sender, args) => SaveToFile(_img, "Select where to save the icon", "icon.png");
+            ((MenuItem)_iconMenu[1]).Click += (sender, args) => {
+                var localIcon = _main.FindName("local_icon") as WpfImage;
+                if (localIcon != null)
+                {
+                    localIcon.Source = ConvertToImageSource(_img);
+                }
+            };
             #endregion
 
             #region Banner Menu
-
             _bannerMenu = new UIElement[] {
-                                              new MenuItem {
-                                                               Header = "Save banner to file"
-                                                           },
-                                              new MenuItem {
-                                                               Header = "Set as banner"
-                                                           }
-                                          };
-            ((MenuItem)_bannerMenu[0]).Click += (sender, args) => MainWindow.SaveToFile(_img, "Select where to save the banner", "banner.png");
-            ((MenuItem)_bannerMenu[1]).Click += (sender, args) => _iconBanner.Load(_img, false);
-
+                new MenuItem { Header = "Save banner to file" },
+                new MenuItem { Header = "Set as banner" }
+            };
+            ((MenuItem)_bannerMenu[0]).Click += (sender, args) => SaveToFile(_img, "Select where to save the banner", "banner.png");
+            ((MenuItem)_bannerMenu[1]).Click += (sender, args) => {
+                var localBanner = _main.FindName("local_banner") as WpfImage;
+                if (localBanner != null)
+                {
+                    localBanner.Source = ConvertToImageSource(_img);
+                }
+            };
             #endregion
 
             #region Background Menu
-
             _backgroundMenu = new UIElement[] {
-                                                  new MenuItem {
-                                                                   Header = "Save background to file"
-                                                               },
-                                                  new MenuItem {
-                                                                   Header = "Set as background"
-                                                               }
-                                              };
-            ((MenuItem)_backgroundMenu[0]).Click += (sender, args) => MainWindow.SaveToFile(_img, "Select where to save the background", "background.png");
-            ((MenuItem)_backgroundMenu[1]).Click += (sender, args) => _background.Load(_img);
-
+                new MenuItem { Header = "Save background to file" },
+                new MenuItem { Header = "Set as background" }
+            };
+            ((MenuItem)_backgroundMenu[0]).Click += (sender, args) => SaveToFile(_img, "Select where to save the background", "background.png");
+            ((MenuItem)_backgroundMenu[1]).Click += (sender, args) => {
+                var localBackground = _main.FindName("local_background") as WpfImage;
+                if (localBackground != null)
+                {
+                    localBackground.Source = ConvertToImageSource(_img);
+                }
+            };
             #endregion
 
             #region Screenshots Menu
-
             _screenshotsMenu = new UIElement[] {
-                                                   new MenuItem {
-                                                                    Header = "Save screenshot to file"
-                                                                },
-                                                   new MenuItem {
-                                                                    Header = "Replace current screenshot"
-                                                                },
-                                                   new MenuItem {
-                                                                    Header = "Add new screenshot"
-                                                                }
-                                               };
-            ((MenuItem)_screenshotsMenu[0]).Click += (sender, args) => MainWindow.SaveToFile(_img, "Select where to save the screenshot", "screenshot.png");
-            ((MenuItem)_screenshotsMenu[1]).Click += (sender, args) => _screenshots.Load(_img, true);
-            ((MenuItem)_screenshotsMenu[2]).Click += (sender, args) => _screenshots.Load(_img, false);
-
+                new MenuItem { Header = "Save screenshot to file" },
+                new MenuItem { Header = "Set as screenshot" }
+            };
+            ((MenuItem)_screenshotsMenu[0]).Click += (sender, args) => SaveToFile(_img, "Select where to save the screenshot", "screenshot.png");
+            ((MenuItem)_screenshotsMenu[1]).Click += (sender, args) => {
+                // Find first empty screenshot slot
+                for (int i = 1; i <= 5; i++)
+                {
+                    var imageControl = _main.FindName($"local_screenshot{i}") as WpfImage;
+                    if (imageControl != null && imageControl.Source == null)
+                    {
+                        imageControl.Source = ConvertToImageSource(_img);
+                        break;
+                    }
+                }
+            };
             #endregion
         }
 
@@ -475,9 +470,7 @@ namespace AuroraAssetEditor.Controls {
                 return;
             }
 
-            _background.Reset();
-            _iconBanner.Reset();
-            _screenshots.Reset();
+            _main.Reset();
 
             DownloadAllButton.IsEnabled = false;
             StatusMessage.Text = "Downloading all assets...";
@@ -532,16 +525,16 @@ namespace AuroraAssetEditor.Controls {
                     switch (assetInfo.Item1)
                     {
                         case XboxTitleInfo.XboxAssetType.Background:
-                            _background.Load(assetInfo.Item2);
+                            _main.Load(assetInfo.Item2);
                             break;
                         case XboxTitleInfo.XboxAssetType.Icon:
-                            _iconBanner.Load(assetInfo.Item2, true);
+                            _main.Load(assetInfo.Item2, true);
                             break;
                         case XboxTitleInfo.XboxAssetType.Banner:
-                            _iconBanner.Load(assetInfo.Item2, false);
+                            _main.Load(assetInfo.Item2, false);
                             break;
                         case XboxTitleInfo.XboxAssetType.Screenshot:
-                            _screenshots.Load(assetInfo.Item2, false);
+                            _main.Load(assetInfo.Item2, false);
                             break;
                     }
                     StatusMessage.Text = $"Downloaded and applied {assetInfo.Item1} ({args.ProgressPercentage}%)";
@@ -570,5 +563,64 @@ namespace AuroraAssetEditor.Controls {
         private void OnDragEnter(object sender, DragEventArgs e) { _main.OnDragEnter(sender, e); }
 
         private void OnDrop(object sender, DragEventArgs e) { _main.DragDrop(this, e); }
+
+        private ImageSource ConvertToImageSource(Image img)
+        {
+            if (img == null) return null;
+            using (var ms = new MemoryStream())
+            {
+                img.Save(ms, ImageFormat.Png);
+                ms.Position = 0;
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.StreamSource = ms;
+                bi.EndInit();
+                return bi;
+            }
+        }
+
+        private void SaveToFile(Image img, string title, string defaultFilename)
+        {
+            if (img == null) return;
+
+            var sfd = new SaveFileDialog
+            {
+                Title = title,
+                FileName = defaultFilename,
+                Filter = "PNG (*.png)|*.png|BMP (*.bmp)|*.bmp|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|GIF (*.gif)|*.gif|TIFF (*.tif;*.tiff)|*.tiff;*.tif|All Files|*"
+            };
+
+            if (sfd.ShowDialog() == true)
+            {
+                try
+                {
+                    var format = ImageFormat.Png;
+                    var ext = System.IO.Path.GetExtension(sfd.FileName).ToLower();
+                    switch (ext)
+                    {
+                        case ".bmp":
+                            format = ImageFormat.Bmp;
+                            break;
+                        case ".jpg":
+                        case ".jpeg":
+                            format = ImageFormat.Jpeg;
+                            break;
+                        case ".gif":
+                            format = ImageFormat.Gif;
+                            break;
+                        case ".tif":
+                        case ".tiff":
+                            format = ImageFormat.Tiff;
+                            break;
+                    }
+                    img.Save(sfd.FileName, format);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error saving file: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
     }
 }

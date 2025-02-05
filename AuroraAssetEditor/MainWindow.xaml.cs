@@ -5,49 +5,44 @@
 //  Created by Swizzy on 08/05/2015
 //  Copyright (c) 2015 Swizzy. All rights reserved.
 
-namespace AuroraAssetEditor {
-    using System;
-    using System.Collections.Generic;
-    using System.ComponentModel;
-    using System.Drawing;
-    using System.Drawing.Imaging;
-    using System.IO;
-    using System.Linq;
-    using System.Net;
-    using System.Reflection;
-    using System.Windows;
-    using System.Windows.Controls;
-    using System.Windows.Input;
-    using Classes;
-    using Models;
-    using Controls;
-    using Helpers;
-    using Microsoft.Win32;
-    using Ookii.Dialogs.Wpf;
-    using Image = System.Drawing.Image;
-    using Size = System.Drawing.Size;
-    using System.ComponentModel;
-    using System.Collections.ObjectModel;
-    using System.Windows.Data;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Reflection;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Data;
+using System.Threading;
+using System.Collections.ObjectModel;
+using AuroraAssetEditor.Classes;
+using AuroraAssetEditor.Models;
+using AuroraAssetEditor.Controls;
+using AuroraAssetEditor.Helpers;
+using Microsoft.Win32;
+using Ookii.Dialogs.Wpf;
+using Image = System.Drawing.Image;
+using WpfImage = System.Windows.Controls.Image;
+using Size = System.Drawing.Size;
 
+namespace AuroraAssetEditor {
     /// <summary>
     ///     Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow {
+    public partial class MainWindow : Window {
         private const string AssetFileFilter =
-            "Game Cover/Boxart Asset File(defaultFilename) (GC*.asset)|GC*.asset|Background Asset File(defaultFilename) (BK*.asset)|BK*.asset|Icon/Banner Asset File(defaultFilename) (GL*.asset)|GL*.asset|Screenshot Asset File(defaultFilename) (SS*.asset)|SS*.asset|Aurora Asset Files (*.asset)|*.asset|FSD Assets Files (*.assets)|*.assets|All Files(*)|*";
+            "Game Cover/Boxart Asset File(defaultFilename) (GC*.asset)|GC*.asset|Background Asset File(defaultFilename) (BK*.asset)|BK*.asset|Icon/Banner Asset File(defaultFilename) (GL*.asset)|GL*.asset|Screenshot Asset File(defaultFilename) (SS*.asset)|SS*.asset|Aurora Asset Files (*.asset)|*.asset|All Files(*)|*";
 
         private const string ImageFileFilter =
             "All Supported Images|*.png;*.bmp;*.jpg;*.jpeg;*.gif;*.tif;*.tiff;|BMP (*.bmp)|*.bmp|JPEG (*.jpg;*.jpeg)|*.jpg;*.jpeg|GIF (*.gif)|*.gif|TIFF (*.tif;*.tiff)|*.tiff;*.tif|PNG (*.png)|*.png|All Files|*";
 
-        private readonly BackgroundControl _background;
-        private readonly MenuItem[] _backgroundMenu;
-        private readonly BoxartControl _boxart;
-        private readonly MenuItem[] _boxartMenu;
-        private readonly IconBannerControl _iconBanner;
-        private readonly UIElement[] _iconBannerMenu;
-        private readonly ScreenshotsControl _screenshots;
-        private readonly MenuItem[] _screenshotsMenu;
         private readonly FtpAssetsControl _ftpAssetsControl;
         private List<FtpGameInfo> _ftpGames = new List<FtpGameInfo>();
 
@@ -57,117 +52,71 @@ namespace AuroraAssetEditor {
             Title = string.Format(Title, ver.Major, ver.Minor, ver.Build);
             Icon = App.WpfIcon;
             
+            // Initialize asset cache
+            AssetCache.Initialize();
+            
             DataContext = GlobalState.CurrentGame;
             GlobalState.GameChanged += OnGameChanged;  // Ensure the UI gets updated when the game changes
+
+            // Set default assets path
+            var defaultPath = @"C:\Users\larst\OneDrive\EMULATOR-AND-SYSTEM DATA\XBOX360\Tools\AuroraAssetEditor\Temp\# Completed";
+            if (Directory.Exists(defaultPath))
+            {
+                AssetPathTextBox.Text = defaultPath;
+            }
+            else
+            {
+                try
+                {
+                    Directory.CreateDirectory(defaultPath);
+                    AssetPathTextBox.Text = defaultPath;
+                }
+                catch (Exception ex)
+                {
+                    SaveError(ex);
+                }
+            }
 
             // add support for TLS 1.1 and TLS 1.2
             ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol
                 | (SecurityProtocolType)768 // TLS 1.1
                 | (SecurityProtocolType)3072; // TLS 1.2
 
-            #region Boxart
-
-            _boxart = new BoxartControl(this);
-            BoxartTab.Content = _boxart;
-            _boxartMenu = new[] {
-                                    new MenuItem {
-                                                     Header = "Save Cover To File"
-                                                 },
-                                    new MenuItem {
-                                                     Header = "Select new Cover"
-                                                 }
-                                };
-            _boxartMenu[0].Click += _boxart.SaveImageToFileOnClick;
-            _boxartMenu[1].Click += _boxart.SelectNewCover;
-
-            #endregion
-
-            #region Background
-
-            _background = new BackgroundControl(this);
-            BackgroundTab.Content = _background;
-            _backgroundMenu = new[] {
-                                        new MenuItem {
-                                                         Header = "Save Background To File"
-                                                     },
-                                        new MenuItem {
-                                                         Header = "Select new Background"
-                                                     }
-                                    };
-            _backgroundMenu[0].Click += _background.SaveImageToFileOnClick;
-            _backgroundMenu[1].Click += _background.SelectNewBackground;
-
-            #endregion
-
-            #region Icon & Banner
-
-            _iconBanner = new IconBannerControl(this);
-            IconBannerTab.Content = _iconBanner;
-            _iconBannerMenu = new UIElement[] {
-                                                  new MenuItem {
-                                                                   Header = "Save Icon To File"
-                                                               },
-                                                  new MenuItem {
-                                                                   Header = "Select new Icon"
-                                                               },
-                                                  new Separator(),
-                                                  new MenuItem {
-                                                                   Header = "Save Banner To File"
-                                                               },
-                                                  new MenuItem {
-                                                                   Header = "Select new Banner"
-                                                               }
-                                              };
-            ((MenuItem)_iconBannerMenu[0]).Click += _iconBanner.SaveIconToFileOnClick;
-            ((MenuItem)_iconBannerMenu[1]).Click += _iconBanner.SelectNewIcon;
-            ((MenuItem)_iconBannerMenu[3]).Click += _iconBanner.SaveBannerToFileOnClick;
-            ((MenuItem)_iconBannerMenu[4]).Click += _iconBanner.SelectNewBanner;
-
-            #endregion
-
-            #region Screenshots
-
-            _screenshots = new ScreenshotsControl(this);
-            ScreenshotsTab.Content = _screenshots;
-            _screenshotsMenu = new[] {
-                                         new MenuItem {
-                                                          Header = "Save Screenshot To File"
-                                                      },
-                                         new MenuItem {
-                                                          Header = "Replace Screenshot"
-                                                      },
-                                         new MenuItem {
-                                                          Header = "Add new Screenshot(s)"
-                                                      },
-                                         new MenuItem {
-                                                          Header = "Remove screenshot"
-                                                      }
-                                     };
-            _screenshotsMenu[0].Click += _screenshots.SaveImageToFileOnClick;
-            _screenshotsMenu[1].Click += _screenshots.SelectNewScreenshot;
-            _screenshotsMenu[2].Click += _screenshots.AddNewScreenshot;
-            _screenshotsMenu[3].Click += _screenshots.RemoveScreenshot;
-
-            #endregion
-
-            OnlineAssetsTab.Content = new OnlineAssetsControl(this, _boxart, _background, _iconBanner, _screenshots);
-            _ftpAssetsControl = new FtpAssetsControl(this, _boxart, _background, _iconBanner, _screenshots);
+            OnlineAssetsTab.Content = new OnlineAssetsControl(this);
+            _ftpAssetsControl = new FtpAssetsControl(this);
             FtpAssetsContainer.Content = _ftpAssetsControl;
 
-            var bw = new BackgroundWorker();
-            bw.DoWork += (sender, e) => {
-                             foreach(var arg in args.Where(File.Exists)) {
-                                 if(VerifyAuroraMagic(arg))
-                                     LoadAuroraAsset(arg);
-                                 else
-                                     LoadFsdAsset(arg);
-                             }
-                         };
-            bw.RunWorkerCompleted += (sender, e) => BusyIndicator.Visibility = Visibility.Collapsed;
+            // Auto-load both lists if debug db exists
+            if (File.Exists("content.debug.db"))
+            {
+                // Load local assets first
+                if (!string.IsNullOrWhiteSpace(AssetPathTextBox.Text) && Directory.Exists(AssetPathTextBox.Text))
+                {
+                    LoadAssetsButton_Click(null, null);
+                }
+                
+                // Then load FTP assets after a small delay
+                var autoLoadWorker = new BackgroundWorker();
+                autoLoadWorker.DoWork += (sender, e) =>
+                {
+                    Thread.Sleep(500); // Small delay to ensure local assets are loaded
+                    Dispatcher.Invoke(() => _ftpAssetsControl.GetAssetsClick(null, null));
+                };
+                autoLoadWorker.RunWorkerAsync();
+            }
+
+            var startupWorker = new BackgroundWorker();
+            startupWorker.DoWork += (sender, e) => {
+                foreach(var arg in args.Where(File.Exists)) {
+                    if(VerifyAuroraMagic(arg))
+                        LoadAuroraAsset(arg);
+                }
+            };
+            startupWorker.RunWorkerCompleted += (sender, e) => GlobalBusyIndicator.Visibility = Visibility.Collapsed;
             if(!args.Any())
                 return;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
+            GlobalBusyIndicator.Visibility = Visibility.Visible;
+            startupWorker.RunWorkerAsync();
         }
 
         internal static void SaveError(Exception ex) { File.AppendAllText("error.log", string.Format("[{0}]:{2}{1}{2}", DateTime.Now, ex, Environment.NewLine)); }
@@ -192,74 +141,112 @@ namespace AuroraAssetEditor {
         private void LoadAuroraAsset(string filename) {
             try {
                 var asset = new AuroraAsset.AssetFile(File.ReadAllBytes(filename));
-                if(asset.HasBoxArt) {
-                    _boxart.Load(asset);
-                    Dispatcher.Invoke(new Action(() => BoxartTab.IsSelected = true));
-                }
-                else if(asset.HasBackground) {
-                    _background.Load(asset);
-                    Dispatcher.Invoke(new Action(() => BackgroundTab.IsSelected = true));
-                }
-                else if(asset.HasScreenshots) {
-                    _screenshots.Load(asset);
-                    Dispatcher.Invoke(new Action(() => ScreenshotsTab.IsSelected = true));
-                }
-                else if(asset.HasIconBanner) {
-                    _iconBanner.Load(asset);
-                    Dispatcher.Invoke(new Action(() => IconBannerTab.IsSelected = true));
-                }
-                else
-                    MessageBox.Show(string.Format("ERROR: {0} Doesn't contain any Assets", filename), "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            catch(Exception ex) {
-                SaveError(ex);
-                MessageBox.Show(string.Format("ERROR: While processing {0}{1}{2}{1}See error.log for more details about this error", filename, Environment.NewLine, ex.Message), "ERROR",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void LoadFsdAsset(string filename) {
-            try {
-                var asset = new FsdAsset(File.ReadAllBytes(filename));
-                var img = asset.GetBoxart();
-                if(img != null) {
-                    _boxart.Load(img);
-                    Dispatcher.Invoke(new Action(() => BoxartTab.IsSelected = true));
-                }
-                img = asset.GetBackground();
-                if(img != null) {
-                    _background.Load(img);
-                    Dispatcher.Invoke(new Action(() => BackgroundTab.IsSelected = true));
-                }
-                img = asset.GetIcon();
-                if(img != null) {
-                    _iconBanner.Load(img, true);
-                    Dispatcher.Invoke(new Action(() => IconBannerTab.IsSelected = true));
-                }
-                img = asset.GetBanner();
-                if(img != null) {
-                    _iconBanner.Load(img, false);
-                    Dispatcher.Invoke(new Action(() => IconBannerTab.IsSelected = true));
-                }
-                var screenshots = asset.GetScreenshots();
-                if(screenshots.Length > 0) {
-                    foreach(var ss in screenshots) {
-                        if(_screenshots.SpaceLeft())
-                            _screenshots.Load(ss, false);
-                        else {
-                            MessageBox.Show("ERROR: Not enough space to fit all screenshots, please clear current screenshots and load the FSD asset again...", "ERROR", MessageBoxButton.OK,
-                                            MessageBoxImage.Error);
-                            return;
+                if(asset.HasBoxArt || asset.HasBackground || asset.HasIconBanner || asset.HasScreenshots) {
+                    Dispatcher.Invoke(() => {
+                        if(asset.HasBoxArt) {
+                            var localBoxart = FindName("local_boxart") as WpfImage;
+                            if (localBoxart != null)
+                            {
+                                var titleId = GlobalState.CurrentGame?.TitleId ?? "unknown";
+                                var cachedImage = AssetCache.GetCachedImage(filename, titleId, "boxart");
+                                if (cachedImage != null)
+                                {
+                                    localBoxart.Source = cachedImage;
+                                }
+                                else
+                                {
+                                    var boxartImage = asset.GetBoxart();
+                                    AssetCache.CacheImage(boxartImage, filename, titleId, "boxart");
+                                    localBoxart.Source = ConvertToImageSource(boxartImage);
+                                }
+                            }
                         }
-                    }
-                    Dispatcher.Invoke(new Action(() => ScreenshotsTab.IsSelected = true));
+                        if(asset.HasBackground) {
+                            var localBackground = FindName("local_background") as WpfImage;
+                            if (localBackground != null)
+                            {
+                                var titleId = GlobalState.CurrentGame?.TitleId ?? "unknown";
+                                var cachedImage = AssetCache.GetCachedImage(filename, titleId, "background");
+                                if (cachedImage != null)
+                                {
+                                    localBackground.Source = cachedImage;
+                                }
+                                else
+                                {
+                                    var backgroundImage = asset.GetBackground();
+                                    AssetCache.CacheImage(backgroundImage, filename, titleId, "background");
+                                    localBackground.Source = ConvertToImageSource(backgroundImage);
+                                }
+                            }
+                        }
+                        if(asset.HasIconBanner) {
+                            var localIcon = FindName("local_icon") as WpfImage;
+                            var localBanner = FindName("local_banner") as WpfImage;
+                            var titleId = GlobalState.CurrentGame?.TitleId ?? "unknown";
+
+                            if (localIcon != null)
+                            {
+                                var cachedIcon = AssetCache.GetCachedImage(filename, titleId, "icon");
+                                if (cachedIcon != null)
+                                {
+                                    localIcon.Source = cachedIcon;
+                                }
+                                else
+                                {
+                                    var iconImage = asset.GetIcon();
+                                    AssetCache.CacheImage(iconImage, filename, titleId, "icon");
+                                    localIcon.Source = ConvertToImageSource(iconImage);
+                                }
+                            }
+
+                            if (localBanner != null)
+                            {
+                                var cachedBanner = AssetCache.GetCachedImage(filename, titleId, "banner");
+                                if (cachedBanner != null)
+                                {
+                                    localBanner.Source = cachedBanner;
+                                }
+                                else
+                                {
+                                    var bannerImage = asset.GetBanner();
+                                    AssetCache.CacheImage(bannerImage, filename, titleId, "banner");
+                                    localBanner.Source = ConvertToImageSource(bannerImage);
+                                }
+                            }
+                        }
+                        if(asset.HasScreenshots) {
+                            var screenshots = asset.GetScreenshots();
+                            var titleId = GlobalState.CurrentGame?.TitleId ?? "unknown";
+                            
+                            for (int i = 0; i < Math.Min(screenshots.Length, 5); i++)
+                            {
+                                var imageControl = FindName($"local_screenshot{i + 1}") as WpfImage;
+                                if (imageControl != null)
+                                {
+                                    var cachedScreenshot = AssetCache.GetCachedImage(filename, titleId, $"screenshot{i + 1}");
+                                    if (cachedScreenshot != null)
+                                    {
+                                        imageControl.Source = cachedScreenshot;
+                                    }
+                                    else
+                                    {
+                                        var screenshot = screenshots[i];
+                                        AssetCache.CacheImage(screenshot, filename, titleId, $"screenshot{i + 1}");
+                                        imageControl.Source = ConvertToImageSource(screenshot);
+                                    }
+                                }
+                            }
+                        }
+                        VisualAssetsTab.IsSelected = true;
+                    });
                 }
-                else
-                    MessageBox.Show(string.Format("ERROR: {0} Doesn't contain any Assets", filename), "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                else {
+                    MessageBox.Show($"ERROR: {filename} doesn't contain any assets", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch(Exception ex) {
                 SaveError(ex);
-                MessageBox.Show(string.Format("ERROR: While processing {0}{1}{2}{1}See error.log for more details about this error", filename, Environment.NewLine, ex.Message), "ERROR",
+                MessageBox.Show($"ERROR: While processing {filename}\n{ex.Message}\nSee error.log for more details about this error", "ERROR",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -278,11 +265,9 @@ namespace AuroraAssetEditor {
                              foreach(var fileName in ofd.FileNames) {
                                  if(VerifyAuroraMagic(fileName))
                                      LoadAuroraAsset(fileName);
-                                 else
-                                     LoadFsdAsset(fileName);
                              }
                          };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
+            bw.RunWorkerCompleted += (o, args) => GlobalBusyIndicator.Visibility = Visibility.Collapsed;
             bw.RunWorkerAsync();
         }
 
@@ -294,70 +279,7 @@ namespace AuroraAssetEditor {
         }
 
         private void CreateNewOnClick(object sender, RoutedEventArgs e) {
-            _boxart.Reset();
-            _background.Reset();
-            _screenshots.Reset();
-            _iconBanner.Reset();
-        }
-
-        private void SaveBoxartOnClick(object sender, RoutedEventArgs e) {
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 _boxart.Save();
-                             }
-                             catch(Exception ex) {
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private void SaveBackgroundOnClick(object sender, RoutedEventArgs e) {
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 _background.Save();
-                             }
-                             catch(Exception ex) {
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private void SaveScreenshotsOnClick(object sender, RoutedEventArgs e) {
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 _screenshots.Save();
-                             }
-                             catch(Exception ex) {
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private void SaveIconBannerOnClick(object sender, RoutedEventArgs e) {
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 _iconBanner.Save();
-                             }
-                             catch(Exception ex) {
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
+            ClearLocalControls();
         }
 
         private void ExitOnClick(object sender, RoutedEventArgs e) { Close(); }
@@ -404,491 +326,254 @@ namespace AuroraAssetEditor {
             GlobalState.GameChanged -= OnGameChanged;
         }
 
-        private Image GetImage(string filename, Size newSize) {
-            try {
-                var shouldResize = false;
-                Dispatcher.Invoke(new Action(() => shouldResize = AutoResizeImages.IsChecked));
-                var ms = new MemoryStream(File.ReadAllBytes(filename));
-                var img = Image.FromStream(ms);
-                if(!img.Size.Equals(newSize) && shouldResize) {
-                    //TODO: Add option to honor aspect ratio
-                    img = new Bitmap(img, newSize);
-                }
-                return img;
-            }
-            catch(Exception ex) {
-                SaveFileError(filename, ex);
-                return null;
-            }
+        private void MenuItem_Click(Object sender, RoutedEventArgs e)
+        {
         }
 
-        internal void DragDrop(UIElement sender, DragEventArgs e) {
-            if(!e.Data.GetDataPresent(DataFormats.FileDrop))
-                return;
-            var files = (string[])e.Data.GetData(DataFormats.FileDrop);
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             var askScreenshot = true;
-                             foreach(var t in files) {
-                                 if(VerifyAuroraMagic(t))
-                                     LoadAuroraAsset(t);
-                                 else if(VerifyFsdMagic(t))
-                                     LoadFsdAsset(t);
-                                 else if(Equals(sender, _boxart))
-                                     _boxart.Load(GetImage(t, new Size(900, 600)));
-                                 else if(Equals(sender, _background))
-                                     _background.Load(GetImage(t, new Size(1280, 720)));
-                                 else if(Equals(sender, _screenshots)) {
-                                     if(askScreenshot && _screenshots.SelectedExists()) { // Do we have a screenshot selected?
-                                         var res = MessageBox.Show(string.Format("Do you want to replace the current Screenshot with {0}?", t), "Replace screenshot?", MessageBoxButton.YesNoCancel,
-                                                                   MessageBoxImage.Question, MessageBoxResult.Cancel);
-                                         if(res == MessageBoxResult.Yes) {
-                                             _screenshots.Load(GetImage(t, new Size(1000, 562)), true); // We want to replace it
-                                             askScreenshot = false;
-                                         }
-                                         else if(res == MessageBoxResult.No && _screenshots.SpaceLeft()) // Do we have space for another screenshot?
-                                             _screenshots.Load(GetImage(t, new Size(1000, 562)), false);
-                                     }
-                                     else if(_screenshots.SpaceLeft()) {
-                                         askScreenshot = false; // The user probably want to add the remaining covers...
-                                         _screenshots.Load(GetImage(t, new Size(1000, 562)), true);
-                                     }
-                                     else
-                                         MessageBox.Show("There is no space left for new screenshots :(", "No space left", MessageBoxButton.OK, MessageBoxImage.Error);
-                                 }
-                                 else if(Equals(sender, _iconBanner)) {
-                                     var res = MessageBox.Show(string.Format("Is {0} an Icon? (If you select no it's assumed it's a banner)", t), "Is this an icon?", MessageBoxButton.YesNoCancel,
-                                                               MessageBoxImage.Question, MessageBoxResult.Cancel);
-                                     switch(res) {
-                                         case MessageBoxResult.Yes:
-                                             _iconBanner.Load(GetImage(t, new Size(64, 64)), true);
-                                             break;
-                                         case MessageBoxResult.No:
-                                             _iconBanner.Load(GetImage(t, new Size(420, 96)), false);
-                                             break;
-                                     }
-                                 }
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => { BusyIndicator.Visibility = Visibility.Collapsed; };
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private static bool VerifyFsdMagic(string fileName) {
-            using(var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                using(var br = new BinaryReader(stream))
-                    return br.ReadUInt32() == 0x41445346; /* FSDA in LittleEndian format */
-            }
-        }
-
-        internal static void SaveToFile(Image img, string title, string defaultFilename) {
-            var sfd = new SaveFileDialog {
-                                             Title = title,
-                                             FileName = defaultFilename,
-                                             Filter = ImageFileFilter
-                                         };
-            if(sfd.ShowDialog() != true)
-                return;
-            var fmt = ImageFormat.Png;
-            var extension = Path.GetExtension(sfd.FileName);
-            if(extension != null) {
-                switch(extension.ToLower()) {
-                    case ".png":
-                        break; // already our default
-                    case ".jpg":
-                    case ".jpeg":
-                        fmt = ImageFormat.Jpeg;
-                        break;
-                    case ".bmp":
-                        fmt = ImageFormat.Bmp;
-                        break;
-                    case ".tif":
-                    case ".tiff":
-                        fmt = ImageFormat.Tiff;
-                        break;
-                    case ".gif":
-                        fmt = ImageFormat.Gif;
-                        break;
+        private void ClearLocalControls()
+        {
+            // Clear all local image controls
+            var controls = new[] { "local_boxart", "local_background", "local_banner", "local_icon" };
+            foreach (var control in controls)
+            {
+                var imageControl = FindName(control) as WpfImage;
+                if (imageControl != null)
+                {
+                    imageControl.Source = null;
                 }
             }
-            using(var ms = new MemoryStream()) {
-                img.Save(ms, fmt);
-                File.WriteAllBytes(sfd.FileName, ms.ToArray());
+
+            // Clear screenshot controls
+            for (int i = 1; i <= 5; i++)
+            {
+                var imageControl = FindName($"local_screenshot{i}") as WpfImage;
+                if (imageControl != null)
+                {
+                    imageControl.Source = null;
+                }
             }
         }
 
-        public Image LoadImage(string title, string defaultFilename, Size newSize) {
-            var ofd = new OpenFileDialog {
-                                             Title = title,
-                                             FileName = defaultFilename,
-                                             Filter = ImageFileFilter
-                                         };
-            return ofd.ShowDialog() != true ? null : (GetImage(ofd.FileName, newSize));
+        private ImageSource ConvertToImageSource(Image img)
+        {
+            if (img == null) return null;
+            using (var ms = new MemoryStream())
+            {
+                img.Save(ms, ImageFormat.Png);
+                ms.Position = 0;
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.StreamSource = ms;
+                bi.EndInit();
+                return bi;
+            }
         }
 
-        public IEnumerable<Image> LoadImages(string title, string defaultFilename, Size newSize) {
-            var ofd = new OpenFileDialog {
-                                             Title = title,
-                                             FileName = defaultFilename,
-                                             Filter = ImageFileFilter,
-                                             Multiselect = true
-                                         };
-            return ofd.ShowDialog() != true ? null : ofd.FileNames.Select(fileName => GetImage(fileName, newSize));
+        internal void UpdateFtpGames(List<FtpGameInfo> ftpGames)
+        {
+            _ftpGames = ftpGames;
         }
 
-        private void TabChanged(object sender, SelectionChangedEventArgs e) {
-            if(BoxartTab.IsSelected)
-                EditMenu.ItemsSource = _boxartMenu;
-            else if(BackgroundTab.IsSelected)
-                EditMenu.ItemsSource = _backgroundMenu;
-            else if(IconBannerTab.IsSelected)
-                EditMenu.ItemsSource = _iconBannerMenu;
-            else if(ScreenshotsTab.IsSelected)
-                EditMenu.ItemsSource = _screenshotsMenu;
-            else
-                EditMenu.ItemsSource = null;
+        internal void UpdateMatchingColors()
+        {
+            // This method can be implemented later if needed
+        }
+
+        internal void Reset()
+        {
+            ClearLocalControls();
+        }
+
+        internal void Load(Image img, bool isIcon = false)
+        {
+            if (img == null) return;
+
+            var imageSource = ConvertToImageSource(img);
             
-            // Always enable the EditMenu when tabs are selected
-            EditMenu.IsEnabled = true;
-        }
-
-        private void EditMenuOpened(object sender, RoutedEventArgs e) {
-            if(BoxartTab.IsSelected)
-                ((MenuItem)EditMenu.Items[0]).IsEnabled = _boxart.HavePreview;
-            else if(BackgroundTab.IsSelected)
-                ((MenuItem)EditMenu.Items[0]).IsEnabled = _background.HavePreview;
-            else if(IconBannerTab.IsSelected) {
-                ((MenuItem)EditMenu.Items[0]).IsEnabled = _iconBanner.HaveIcon;
-                ((MenuItem)EditMenu.Items[3]).IsEnabled = _iconBanner.HaveBanner;
+            if (isIcon)
+            {
+                var localIcon = FindName("local_icon") as WpfImage;
+                if (localIcon != null)
+                {
+                    localIcon.Source = imageSource;
+                }
             }
-            else if(ScreenshotsTab.IsSelected) {
-                ((MenuItem)EditMenu.Items[0]).IsEnabled = _screenshots.HavePreview;
-                ((MenuItem)EditMenu.Items[3]).IsEnabled = _screenshots.HavePreview;
+            else
+            {
+                // Find first empty screenshot slot
+                for (int i = 1; i <= 5; i++)
+                {
+                    var imageControl = FindName($"local_screenshot{i}") as WpfImage;
+                    if (imageControl != null && imageControl.Source == null)
+                    {
+                        imageControl.Source = imageSource;
+                        break;
+                    }
+                }
             }
         }
-
-        private void SaveAllAssetsOnClick(object sender, RoutedEventArgs e) {
-            var ipd = new InputDialog(this, "Please specify TitleID:");
-            if(ipd.ShowDialog() != true || string.IsNullOrWhiteSpace(ipd.Value))
-                return;
-            var fsd = new VistaFolderBrowserDialog {
-                                                       Description = "Select where to save the asset files"
-                                                   };
-            if(fsd.ShowDialog(this) != true)
-                return;
-            var name = ipd.Value;
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 var filename = Path.Combine(fsd.SelectedPath, string.Format("GC{0}.asset", name));
-                                 if(_boxart.HavePreview || !File.Exists(filename))
-                                     _boxart.Save(filename);
-                                 filename = Path.Combine(fsd.SelectedPath, string.Format("BK{0}.asset", name));
-                                 if(_background.HavePreview || !File.Exists(filename))
-                                     _background.Save(filename);
-                                 filename = Path.Combine(fsd.SelectedPath, string.Format("GL{0}.asset", name));
-                                 if(_iconBanner.HaveBanner || _iconBanner.HaveIcon || !File.Exists(filename))
-                                     _iconBanner.Save(filename);
-                                 filename = Path.Combine(fsd.SelectedPath, string.Format("SS{0}.asset", name));
-                                 if(_screenshots.HaveScreenshots || !File.Exists(filename))
-                                     _screenshots.Save(filename);
-                             }
-                             catch(Exception ex) {
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private void SaveAllAssetsFtpOnClick(object sender, RoutedEventArgs e) {
-            if(!App.FtpOperations.ConnectionEstablished) {
-                MessageBox.Show("ERROR: FTP Connection could not be established", "ERROR", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-            var dialog = new TitleAndDbIdDialog(this);
-            if(dialog.ShowDialog() != true)
-                return;
-            var tid = dialog.TitleId;
-            var aid = dialog.AssetId;
-            var bw = new BackgroundWorker();
-            bw.DoWork += (o, args) => {
-                             try {
-                                 if(_boxart.HavePreview)
-                                     App.FtpOperations.SendAssetData(string.Format("GC{0}.asset", tid), aid, _boxart.GetData());
-                                 if(_background.HavePreview)
-                                     App.FtpOperations.SendAssetData(string.Format("BK{0}.asset", tid), aid, _background.GetData());
-                                 if(_iconBanner.HaveBanner || _iconBanner.HaveIcon)
-                                     App.FtpOperations.SendAssetData(string.Format("GL{0}.asset", tid), aid, _iconBanner.GetData());
-                                 if(_screenshots.HaveScreenshots)
-                                     App.FtpOperations.SendAssetData(string.Format("SS{0}.asset", tid), aid, _screenshots.GetData());
-                             }
-                             catch(Exception ex) {
-                                 MessageBox.Show("There was an error while processing your request, check error.log for more information...");
-                                 SaveError(ex);
-                             }
-                         };
-            bw.RunWorkerCompleted += (o, args) => BusyIndicator.Visibility = Visibility.Collapsed;
-            BusyIndicator.Visibility = Visibility.Visible;
-            bw.RunWorkerAsync();
-        }
-
-        private void FileOpening(object sender, ContextMenuEventArgs e) { FtpUpload.IsEnabled = App.FtpOperations.HaveSettings; }
 
         private void LoadAssetsButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            var path = AssetPathTextBox.Text;
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
             {
-                string path = AssetPathTextBox.Text;
-                if (Directory.Exists(path))
+                MessageBox.Show("Please enter a valid directory path", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            Dispatcher.Invoke(() => {
+                ListViewBusyIndicator.Visibility = Visibility.Visible;
+                FolderListView.ItemsSource = null; // Clear current items
+            });
+
+            var worker = new BackgroundWorker();
+            worker.DoWork += (s, args) =>
+            {
+                try
                 {
-                    var folders = Directory.GetDirectories(path)
-                        .Select(folderPath => 
+                    var directories = Directory.GetDirectories(path);
+                    var folders = directories
+                        .Select(dir => new DirectoryInfo(dir))
+                        .Select(dirInfo =>
                         {
-                            var folderName = Path.GetFileName(folderPath);
-                            // Split the folder name into Game Name and TitleID
-                            var parts = folderName.Split(new[] { '(', ')' }, StringSplitOptions.RemoveEmptyEntries);
-                            var gameName = parts.Length > 0 ? parts[0].Trim() : folderName;
-                            var titleId = parts.Length > 1 ? parts[1].Trim() : string.Empty;
-
-                            // Check for 8-character subfolder
-                            var hasSubfolder = Directory.Exists(Path.Combine(folderPath, titleId));
-
-                            // Count files
-                            int CountFiles(string pattern) => 
-                                Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories).Length;
-
-                            var boxartCount = CountFiles("boxart_*.png");
-                            var backgroundCount = CountFiles("background*.png");
-                            var bannerCount = CountFiles("banner*.png");
-                            var iconCount = CountFiles("icon*.png");
-                            var screenshotCount = CountFiles("screenshot*.png");
-
-                            return new FolderInfo
+                            var folder = new FolderInfo
                             {
-                                GameName = gameName,
-                                TitleId = titleId,
-                                Assets = hasSubfolder ? "✓" : "",
-                                Boxart = boxartCount > 0 ? boxartCount.ToString() : "",
-                                Back = backgroundCount > 0 ? backgroundCount.ToString() : "",
-                                Banner = bannerCount > 0 ? bannerCount.ToString() : "",
-                                Icon = iconCount > 0 ? iconCount.ToString() : "",
-                                Screens = screenshotCount > 0 ? screenshotCount.ToString() : ""
+                                GameName = dirInfo.Name,
+                                TitleId = GetTitleIdFromFolder(dirInfo),
+                                Assets = CountFiles(dirInfo, "*.asset"),
+                                Boxart = CountFiles(dirInfo, "boxart*.png"),
+                                Back = CountFiles(dirInfo, "background*.png"),
+                                Banner = CountFiles(dirInfo, "banner*.png"),
+                                Icon = CountFiles(dirInfo, "icon*.png"),
+                                Screens = CountFiles(dirInfo, "screenshot*.png")
                             };
-                        })
-                        .ToList();
 
-                    FolderListView.ItemsSource = folders;
-                    UpdateMatchingColors();
-                }
-                else
-                {
-                    MessageBox.Show("The specified path does not exist.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void ShowLocalAssetsButton_Click(object sender, RoutedEventArgs e)
-        {
-            LocalAssets.Visibility = Visibility.Visible;
-        }
-
-        private void FolderListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            try
-            {
-                // Get the selected folder info
-                if (FolderListView.SelectedItem is FolderInfo selectedFolder)
-                {
-                    // Get the folder path
-                    string folderPath = Path.Combine(AssetPathTextBox.Text, $"{selectedFolder.GameName} ({selectedFolder.TitleId})");
-                    string subfolderPath = Path.Combine(folderPath, selectedFolder.TitleId);
-
-                    if (Directory.Exists(subfolderPath))
-                    {
-                        // Find all asset files in the subfolder
-                        var assetFiles = Directory.GetFiles(subfolderPath, "*.asset");
-
-                        if (assetFiles.Length > 0)
-                        {
-                            // Clear existing assets
-                            CreateNewOnClick(null, null);
-
-                            // Process each asset file
-                            foreach (var assetFile in assetFiles)
+                            // Check and update cache status for this folder
+                            if (!string.IsNullOrEmpty(folder.TitleId))
                             {
-                                if (VerifyAuroraMagic(assetFile))
-                                {
-                                    LoadAuroraAsset(assetFile);
-                                }
-                                else if (VerifyFsdMagic(assetFile))
-                                {
-                                    LoadFsdAsset(assetFile);
-                                }
+                                folder.CachedAssets = AssetCache.CheckFolderCache(dirInfo.FullName, folder.TitleId);
                             }
 
-                            // Switch to the first tab with content
-                            if (_boxart.HavePreview)
-                                BoxartTab.IsSelected = true;
-                            else if (_background.HavePreview)
-                                BackgroundTab.IsSelected = true;
-                            else if (_iconBanner.HaveBanner || _iconBanner.HaveIcon)
-                                IconBannerTab.IsSelected = true;
-                            else if (_screenshots.HaveScreenshots)
-                                ScreenshotsTab.IsSelected = true;
-                        }
-                        else
-                        {
-                            MessageBox.Show("No asset files found in the subfolder.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                        }
-                    }
-                    else
+                            return folder;
+                        })
+                        .OrderBy(f => f.GameName)
+                        .ToList();
+
+                    // Post-process to set background colors only for matching TitleIDs
+                    foreach (var folder in folders)
                     {
-                        MessageBox.Show($"Subfolder '{selectedFolder.TitleId}' not found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        if (!string.IsNullOrEmpty(folder.TitleId) && 
+                            _ftpGames.Any(f => f.TitleId?.Equals(folder.TitleId, StringComparison.OrdinalIgnoreCase) == true))
+                        {
+                            Dispatcher.Invoke(() => {
+                                folder.BackgroundColor = new SolidColorBrush(Colors.LightGreen);
+                            });
+                        }
                     }
+
+                    args.Result = folders;
                 }
+                catch (Exception ex)
+                {
+                    SaveError(ex);
+                    args.Result = ex;
+                }
+            };
+
+            worker.RunWorkerCompleted += (s, args) =>
+            {
+                Dispatcher.Invoke(() => {
+                    if (args.Result is Exception ex)
+                    {
+                        MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    else if (args.Result is List<FolderInfo> folders)
+                    {
+                        FolderListView.ItemsSource = folders;
+                    }
+
+                    ListViewBusyIndicator.Visibility = Visibility.Collapsed;
+                });
+            };
+
+            worker.RunWorkerAsync();
+        }
+
+        private string CountFiles(DirectoryInfo dirInfo, string pattern)
+        {
+            try
+            {
+                int count = dirInfo.GetFiles(pattern, SearchOption.AllDirectories).Length;
+                return count > 0 ? count.ToString() : "";
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                SaveError(ex);
+                return "";
             }
         }
 
-        private void HighlightMatchingRows()
+        private string GetTitleIdFromFolder(DirectoryInfo dirInfo)
         {
-            var ftpTitleIds = GetFtpTitleIds();
-            
-            // Highlight local assets
-            if (FolderListView.ItemsSource is List<FolderInfo> localAssets)
+            // Try to find a title ID in brackets [XXXXX]
+            var match = System.Text.RegularExpressions.Regex.Match(dirInfo.Name, @"\[([A-Fa-f0-9]{5,8})\]");
+            if (match.Success)
             {
-                foreach (var item in localAssets)
-                {
-                    if (!string.IsNullOrEmpty(item.TitleId) && ftpTitleIds.Contains(item.TitleId))
-                    {
-                        item.BackgroundColor = System.Windows.Media.Brushes.LightGreen;
-                    }
-                    else
-                    {
-                        item.BackgroundColor = System.Windows.Media.Brushes.Transparent;
-                    }
-                }
+                return match.Groups[1].Value.ToUpper();
             }
 
-            // Highlight FTP assets
-            if (_ftpAssetsControl?.FtpAssetsBox?.ItemsSource is IEnumerable<AuroraDbManager.ContentItem> ftpAssets)
+            // Try to find a title ID at the start of the name (common format)
+            match = System.Text.RegularExpressions.Regex.Match(dirInfo.Name, @"^([A-Fa-f0-9]{5,8})");
+            if (match.Success)
             {
-                var localTitleIds = new HashSet<string>(
-                    (FolderListView.ItemsSource as List<FolderInfo>)?.Select(f => f.TitleId) ?? 
-                    Enumerable.Empty<string>());
-
-                foreach (var item in ftpAssets)
-                {
-                    if (!string.IsNullOrEmpty(item.TitleId) && localTitleIds.Contains(item.TitleId))
-                    {
-                        item.BackgroundColor = System.Windows.Media.Brushes.LightGreen;
-                    }
-                    else
-                    {
-                        item.BackgroundColor = System.Windows.Media.Brushes.Transparent;
-                    }
-                }
+                return match.Groups[1].Value.ToUpper();
             }
+
+            // Try to find a title ID anywhere in the name
+            match = System.Text.RegularExpressions.Regex.Match(dirInfo.Name, @"[^A-Fa-f0-9]([A-Fa-f0-9]{5,8})[^A-Fa-f0-9]");
+            if (match.Success)
+            {
+                return match.Groups[1].Value.ToUpper();
+            }
+
+            return "";
         }
 
-        private HashSet<string> GetFtpTitleIds()
+        internal void DragDrop(object sender, DragEventArgs e)
         {
-            return new HashSet<string>(_ftpGames.Select(g => g.TitleId));
+            // This method can be implemented later if needed
         }
 
-        public void UpdateFtpGames(List<FtpGameInfo> games)
+        private void FileOpening(object sender, ContextMenuEventArgs e)
         {
-            _ftpGames = games;
-            // If local assets are already loaded, update their highlighting
-            if (FolderListView.ItemsSource != null)
-            {
-                HighlightMatchingRows();
-            }
+            // Implementation can be added later if needed
         }
 
-        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        private void SaveAllAssetsFtpOnClick(object sender, RoutedEventArgs e)
         {
-            var headerClicked = e.OriginalSource as GridViewColumnHeader;
-            if (headerClicked?.Column is GridViewColumn column)
-            {
-                var binding = column.DisplayMemberBinding as Binding;
-                string propertyName = binding?.Path?.Path;
-                
-                if (!string.IsNullOrEmpty(propertyName))
-                {
-                    var view = CollectionViewSource.GetDefaultView(FolderListView.ItemsSource);
-                    if (view.SortDescriptions.Count > 0 &&
-                        view.SortDescriptions[0].PropertyName == propertyName)
-                    {
-                        view.SortDescriptions.Clear();
-                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Descending));
-                    }
-                    else
-                    {
-                        view.SortDescriptions.Clear();
-                        view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Ascending));
-                    }
-                }
-            }
+            // Implementation can be added later if needed
         }
 
-        public void UpdateMatchingColors()
+        private void EditMenuOpened(object sender, RoutedEventArgs e)
         {
-            // Only proceed if both lists have items
-            var localAssets = FolderListView?.ItemsSource as List<FolderInfo>;
-            var ftpAssets = _ftpAssetsControl?.FtpAssetsBox?.ItemsSource as IEnumerable<AuroraDbManager.ContentItem>;
-            
-            if (localAssets == null || ftpAssets == null || !localAssets.Any() || !ftpAssets.Any())
-                return;
+            // Implementation can be added later if needed
+        }
 
-            // Create lookup sets with normalized TitleIDs
-            var localTitleIds = new HashSet<string>(
-                localAssets.Select(f => f.TitleId?.ToUpper()?.Trim())
-                .Where(id => !string.IsNullOrEmpty(id)));
-            
-            var ftpTitleIds = new HashSet<string>(
-                ftpAssets.Select(f => f.TitleId?.ToUpper()?.Trim())
-                .Where(id => !string.IsNullOrEmpty(id)));
+        private void ShowFtpAssets(object sender, RoutedEventArgs e)
+        {
+            // Implementation can be added later if needed
+        }
 
-            // Debug output
-            System.Diagnostics.Debug.WriteLine($"Local TitleIDs: {string.Join(", ", localTitleIds)}");
-            System.Diagnostics.Debug.WriteLine($"FTP TitleIDs: {string.Join(", ", ftpTitleIds)}");
+        private void TestColoring_Click(object sender, RoutedEventArgs e)
+        {
+            // Implementation can be added later if needed
+        }
 
-            // Update local assets colors
-            foreach (var item in localAssets)
-            {
-                var normalizedTitleId = item.TitleId?.ToUpper()?.Trim();
-                item.BackgroundColor = !string.IsNullOrEmpty(normalizedTitleId) && ftpTitleIds.Contains(normalizedTitleId)
-                    ? System.Windows.Media.Brushes.LightGreen
-                    : System.Windows.Media.Brushes.Transparent;
-                
-                System.Diagnostics.Debug.WriteLine($"Local: {item.GameName} ({normalizedTitleId}) - Match: {ftpTitleIds.Contains(normalizedTitleId)}");
-            }
-
-            // Update FTP assets colors
-            foreach (var item in ftpAssets)
-            {
-                var normalizedTitleId = item.TitleId?.ToUpper()?.Trim();
-                item.BackgroundColor = !string.IsNullOrEmpty(normalizedTitleId) && localTitleIds.Contains(normalizedTitleId)
-                    ? System.Windows.Media.Brushes.LightGreen
-                    : System.Windows.Media.Brushes.Transparent;
-                
-                System.Diagnostics.Debug.WriteLine($"FTP: {item.TitleName} ({normalizedTitleId}) - Match: {localTitleIds.Contains(normalizedTitleId)}");
-            }
-
-            // Force ListView updates
-            FolderListView.Items.Refresh();
-            _ftpAssetsControl.FtpAssetsBox.Items.Refresh();
+        private void TabChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Implementation can be added later if needed
         }
 
         private void LocalTitleFilterChanged(object sender, TextChangedEventArgs e)
@@ -903,11 +588,13 @@ namespace AuroraAssetEditor {
 
         private void ApplyLocalFilters()
         {
+            if (FolderListView?.ItemsSource == null) return;
+
             var view = CollectionViewSource.GetDefaultView(FolderListView.ItemsSource);
             if (view == null) return;
 
-            var titleFilter = LocalTitleFilterBox.Text.ToLower();
-            var titleIdFilter = LocalTitleIdFilterBox.Text.ToLower();
+            var titleFilter = LocalTitleFilterBox?.Text?.ToLower() ?? "";
+            var titleIdFilter = LocalTitleIdFilterBox?.Text?.ToLower() ?? "";
 
             view.Filter = item =>
             {
@@ -929,15 +616,123 @@ namespace AuroraAssetEditor {
             };
         }
 
-        private void ShowFtpAssets()
+        private void FolderListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            EditMenu.ItemsSource = null;
-            EditMenu.IsEnabled = false;
+            var selectedFolder = FolderListView.SelectedItem as FolderInfo;
+            if (selectedFolder == null) return;
+
+            var path = AssetPathTextBox.Text;
+            if (string.IsNullOrWhiteSpace(path)) return;
+
+            var folderPath = Path.Combine(path, selectedFolder.GameName);
+            if (!Directory.Exists(folderPath)) return;
+
+            // Clear existing assets
+            ClearLocalControls();
+
+            // Update the current game info
+            var newGame = new Game
+            {
+                Title = selectedFolder.GameName,
+                TitleId = selectedFolder.TitleId,
+                IsGameSelected = true
+            };
+            GlobalState.CurrentGame = newGame;
+
+            try
+            {
+                // Load cached assets first
+                if (selectedFolder.CachedAssets != null)
+                {
+                    foreach (var cachedAsset in selectedFolder.CachedAssets)
+                    {
+                        var assetType = cachedAsset.Key;
+                        var (filePath, hash) = cachedAsset.Value;
+                        var cachePath = AssetCache.GetCachePath(selectedFolder.TitleId, assetType, hash);
+
+                        if (File.Exists(cachePath))
+                        {
+                            var image = AssetCache.LoadImageFromCache(cachePath);
+                            if (image != null)
+                            {
+                                switch (assetType)
+                                {
+                                    case "boxart":
+                                        var localBoxart = FindName("local_boxart") as WpfImage;
+                                        if (localBoxart != null) localBoxart.Source = image;
+                                        break;
+                                    case "background":
+                                        var localBackground = FindName("local_background") as WpfImage;
+                                        if (localBackground != null) localBackground.Source = image;
+                                        break;
+                                    case "banner":
+                                        var localBanner = FindName("local_banner") as WpfImage;
+                                        if (localBanner != null) localBanner.Source = image;
+                                        break;
+                                    case "icon":
+                                        var localIcon = FindName("local_icon") as WpfImage;
+                                        if (localIcon != null) localIcon.Source = image;
+                                        break;
+                                    case "screenshot":
+                                        for (int i = 1; i <= 5; i++)
+                                        {
+                                            var imageControl = FindName($"local_screenshot{i}") as WpfImage;
+                                            if (imageControl != null && imageControl.Source == null)
+                                            {
+                                                imageControl.Source = image;
+                                                break;
+                                            }
+                                        }
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Load any missing assets from .asset files
+                var patterns = new[] {
+                    ("GC*.asset", "boxart"),
+                    ("BK*.asset", "background"),
+                    ("GL*.asset", "banner"),
+                    ("GL*.asset", "icon"),
+                    ("SS*.asset", "screenshot")
+                };
+
+                foreach (var (pattern, assetType) in patterns)
+                {
+                    if (!selectedFolder.CachedAssets?.ContainsKey(assetType) ?? true)
+                    {
+                        var files = Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories);
+                        foreach (var file in files)
+                        {
+                            if (VerifyAuroraMagic(file))
+                            {
+                                LoadAuroraAsset(file);
+                            }
+                        }
+                    }
+                }
+
+                VisualAssetsTab.IsSelected = true;
+            }
+            catch (Exception ex)
+            {
+                SaveError(ex);
+                MessageBox.Show($"Error loading assets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)
+        {
+            // Implementation can be added later if needed
         }
     }
 
-    public class FolderInfo
+    public class FolderInfo : INotifyPropertyChanged
     {
+        private System.Windows.Media.Brush _backgroundColor = System.Windows.Media.Brushes.Transparent;
+
         public string GameName { get; set; }
         public string TitleId { get; set; }
         public string Assets { get; set; }
@@ -946,7 +741,31 @@ namespace AuroraAssetEditor {
         public string Banner { get; set; }
         public string Icon { get; set; }
         public string Screens { get; set; }
-        public System.Windows.Media.Brush BackgroundColor { get; set; } = System.Windows.Media.Brushes.Transparent;
+
+        // Cache status for each asset type
+        public Dictionary<string, (string FilePath, string Hash)> CachedAssets { get; set; } = new Dictionary<string, (string, string)>();
+
+        public System.Windows.Media.Brush BackgroundColor
+        {
+            get => _backgroundColor;
+            set
+            {
+                if (_backgroundColor != value)
+                {
+                    _backgroundColor = value;
+                    OnPropertyChanged(nameof(BackgroundColor));
+                }
+            }
+        }
+
+        public string Title => GameName;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
     public class FtpGameInfo
