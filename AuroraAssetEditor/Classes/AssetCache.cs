@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 
 namespace AuroraAssetEditor.Classes
 {
@@ -64,6 +65,8 @@ namespace AuroraAssetEditor.Classes
             var md5FilePath = Path.Combine(assetsPath, "md5.txt");
             var result = new Dictionary<string, string>();
 
+            // Read existing MD5s if file exists
+            var validMd5s = new HashSet<string>();
             if (File.Exists(md5FilePath))
             {
                 foreach (var line in File.ReadAllLines(md5FilePath))
@@ -71,35 +74,52 @@ namespace AuroraAssetEditor.Classes
                     var parts = line.Split(new[] { ':' }, 2);
                     if (parts.Length == 2)
                     {
-                        // Store with normalized path separators
-                        result[parts[0].Replace('\\', '/')] = parts[1];
+                        result[parts[0]] = parts[1];
+                        validMd5s.Add(parts[1].ToLowerInvariant());
                     }
                 }
             }
-            else if (Directory.GetFiles(assetsPath, "*.asset", SearchOption.AllDirectories).Any())
-            {
-                // Generate md5.txt if it doesn't exist but there are asset files
-                var assetFiles = Directory.GetFiles(assetsPath, "*.asset", SearchOption.AllDirectories);
-                var md5Lines = new List<string>();
 
-                foreach (var file in assetFiles)
+            // Clean up orphaned cache files
+            var localCachePath = Path.Combine(CacheFolder, LocalFolder);
+            if (Directory.Exists(localCachePath))
+            {
+                foreach (var titleIdDir in Directory.GetDirectories(localCachePath))
                 {
-                    if (VerifyAuroraMagic(file))
+                    foreach (var cacheFile in Directory.GetFiles(titleIdDir, "*-*.png"))
                     {
-                        var hash = CalculateFileHash(file);
-                        var relativePath = GetRelativePath(assetsPath, file);
-                        result[relativePath.Replace('\\', '/')] = hash;
-                        md5Lines.Add($"{relativePath}:{hash}");
+                        // Extract MD5 from filename (format is assettype-md5.png)
+                        var fileName = Path.GetFileNameWithoutExtension(cacheFile);
+                        var md5 = fileName.Split('-').LastOrDefault();
+                        
+                        if (md5 != null && !validMd5s.Contains(md5.ToLowerInvariant()))
+                        {
+                            try
+                            {
+                                File.Delete(cacheFile);
+                                Debug.WriteLine($"Deleted orphaned cache file: {cacheFile}");
+                            }
+                            catch (Exception ex)
+                            {
+                                MainWindow.SaveError(ex);
+                            }
+                        }
+                    }
+
+                    // Clean up empty directories
+                    if (!Directory.EnumerateFileSystemEntries(titleIdDir).Any())
+                    {
+                        try
+                        {
+                            Directory.Delete(titleIdDir);
+                            Debug.WriteLine($"Deleted empty cache directory: {titleIdDir}");
+                        }
+                        catch (Exception ex)
+                        {
+                            MainWindow.SaveError(ex);
+                        }
                     }
                 }
-
-                if (md5Lines.Any())
-                {
-                    File.WriteAllLines(md5FilePath, md5Lines);
-                }
-
-                // Clear all existing cache since we're regenerating MD5s
-                ClearCache();
             }
 
             _md5Cache = result;
@@ -130,6 +150,35 @@ namespace AuroraAssetEditor.Classes
             return result;
         }
 
+        private static void UpdateMd5File(string assetsPath, string relativePath, string newHash)
+        {
+            var md5FilePath = Path.Combine(assetsPath, "md5.txt");
+            var lines = new List<string>();
+            
+            // Read existing lines if file exists
+            if (File.Exists(md5FilePath))
+            {
+                lines = File.ReadAllLines(md5FilePath)
+                    .Where(line => !line.StartsWith(relativePath + ":")) // Remove old entry for this file
+                    .ToList();
+            }
+            
+            // Add new entry
+            lines.Add($"{relativePath}:{newHash}");
+            
+            // Sort lines for consistency
+            lines.Sort();
+            
+            // Write back to file
+            File.WriteAllLines(md5FilePath, lines);
+            
+            // Update in-memory cache
+            if (_md5Cache != null && _currentAssetsPath == assetsPath)
+            {
+                _md5Cache[relativePath] = newHash;
+            }
+        }
+
         private static void CheckAssetCache(string folderPath, string titleId, string searchPattern, string assetType, 
             Dictionary<string, (string FilePath, string Hash)> result, Dictionary<string, string> md5Dict, string assetsRootPath)
         {
@@ -143,100 +192,59 @@ namespace AuroraAssetEditor.Classes
                     var relativePath = GetRelativePath(assetsRootPath, file).Replace('\\', '/');
                     string hash;
                     
-                    // Get hash from md5.txt if available
+                    // First try to get hash from md5.txt
                     if (!md5Dict.TryGetValue(relativePath, out hash))
                     {
-                        continue; // Skip if no MD5 available
+                        // If not found, calculate it and update md5.txt
+                        hash = CalculateFileHash(file);
+                        UpdateMd5File(assetsRootPath, relativePath, hash);
                     }
 
-                    var cachePath = GetCachePath(titleId, assetType, hash);
-                    var cacheDir = Path.GetDirectoryName(cachePath);
-
-                    // Check if we need to clean up old cache files
-                    if (Directory.Exists(cacheDir))
+                    if (assetType == "screenshot")
                     {
-                        var existingCacheFiles = Directory.GetFiles(cacheDir, $"{assetType}-*.png");
-                        foreach (var cacheFile in existingCacheFiles)
+                        var assetBytes = File.ReadAllBytes(file);
+                        var asset = new AuroraAsset.AssetFile(assetBytes);
+                        var screenshots = asset.GetScreenshots();
+                        
+                        if (screenshots != null && screenshots.Length > 0)
                         {
-                            if (!cacheFile.EndsWith($"{assetType}-{hash}.png", StringComparison.OrdinalIgnoreCase))
+                            for (int i = 0; i < screenshots.Length; i++)
                             {
-                                try
+                                var screenshotCachePath = GetCachePath(titleId, $"screenshot{i + 1}", hash);
+                                if (!File.Exists(screenshotCachePath) && screenshots[i] != null)
                                 {
-                                    File.Delete(cacheFile);
+                                    using (var thumbnail = CreateThumbnail(screenshots[i], "screenshot"))
+                                    {
+                                        Directory.CreateDirectory(Path.GetDirectoryName(screenshotCachePath));
+                                        thumbnail.Save(screenshotCachePath, ImageFormat.Png);
+                                    }
                                 }
-                                catch (Exception ex)
-                                {
-                                    MainWindow.SaveError(ex);
-                                }
+                                result[$"screenshot{i + 1}"] = (file, hash);
                             }
                         }
                     }
-
-                    // If cache doesn't exist or is outdated, create it
-                    if (!File.Exists(cachePath) || File.GetLastWriteTime(cachePath) < File.GetLastWriteTime(file))
+                    else
                     {
-                        try
+                        var cachePath = GetCachePath(titleId, assetType, hash);
+                        if (!File.Exists(cachePath))
                         {
                             var assetBytes = File.ReadAllBytes(file);
                             var asset = new AuroraAsset.AssetFile(assetBytes);
                             Image image = null;
+
                             switch (assetType)
                             {
                                 case "boxart": image = asset.HasBoxArt ? asset.GetBoxart() : null; break;
                                 case "background": image = asset.HasBackground ? asset.GetBackground() : null; break;
                                 case "banner": image = asset.HasIconBanner ? asset.GetBanner() : null; break;
                                 case "icon": image = asset.HasIconBanner ? asset.GetIcon() : null; break;
-                                case "screenshot": 
-                                    var screenshots = asset.GetScreenshots();
-                                    MainWindow.SaveError(new Exception($"Found {screenshots?.Length ?? 0} screenshots in {file}"));
-                                    if (screenshots != null && screenshots.Length > 0)
-                                    {
-                                        // Cache all screenshots with index in filename
-                                        for (int i = 0; i < screenshots.Length; i++)
-                                        {
-                                            if (screenshots[i] != null)
-                                            {
-                                                // Create thumbnail with appropriate size
-                                                using (var thumbnail = CreateThumbnail(screenshots[i], "screenshot"))
-                                                {
-                                                    var screenshotCachePath = GetCachePath(titleId, $"screenshot{i + 1}", hash);
-                                                    MainWindow.SaveError(new Exception($"Caching screenshot {i + 1} to {screenshotCachePath}"));
-                                                    
-                                                    // Ensure directory exists
-                                                    Directory.CreateDirectory(Path.GetDirectoryName(screenshotCachePath));
-                                                    
-                                                    // Save thumbnail to cache
-                                                    thumbnail.Save(screenshotCachePath, ImageFormat.Png);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                MainWindow.SaveError(new Exception($"Screenshot {i + 1} is null"));
-                                            }
-                                        }
-                                        // Store references for each screenshot
-                                        for (int i = 0; i < screenshots.Length; i++)
-                                        {
-                                            result[$"screenshot{i + 1}"] = (file, hash);
-                                        }
-                                    }
-                                    return; // Skip the rest since we've handled screenshots specially
                             }
 
                             if (image != null)
                             {
                                 CacheImage(image, hash, titleId, assetType);
-                                result[assetType] = (file, hash);
                             }
                         }
-                        catch (Exception ex)
-                        {
-                            MainWindow.SaveError(ex);
-                        }
-                    }
-                    else
-                    {
-                        // Cache exists and is up to date
                         result[assetType] = (file, hash);
                     }
                 }
@@ -282,35 +290,17 @@ namespace AuroraAssetEditor.Classes
                 string cachePath = GetCachePath(titleId, $"screenshot{screenshotNumber}", hash);
 
                 // If cache exists and is newer than asset file, use it
-                if (File.Exists(cachePath) && 
-                    File.GetLastWriteTime(cachePath) >= File.GetLastWriteTime(assetPath))
+                if (File.Exists(cachePath))
                 {
-                    try
-                    {
-                        return LoadImageFromCache(cachePath);
-                    }
-                    catch
-                    {
-                        // If loading cached image fails, continue to regenerate it
-                    }
+                    return LoadImageFromCache(cachePath);
                 }
-
-                return null;
             }
-
-            string baseCachePath = GetCachePath(titleId, assetType, hash);
-
-            // If cache exists and is newer than asset file, use it
-            if (File.Exists(baseCachePath) && 
-                File.GetLastWriteTime(baseCachePath) >= File.GetLastWriteTime(assetPath))
+            else
             {
-                try
+                string cachePath = GetCachePath(titleId, assetType, hash);
+                if (File.Exists(cachePath))
                 {
-                    return LoadImageFromCache(baseCachePath);
-                }
-                catch
-                {
-                    // If loading cached image fails, continue to regenerate it
+                    return LoadImageFromCache(cachePath);
                 }
             }
 
@@ -398,19 +388,35 @@ namespace AuroraAssetEditor.Classes
 
         public static string GetCachePath(string titleId, string assetType, string hash)
         {
+            // Ensure titleId is exactly 8 characters with leading zeros if needed
+            if (!string.IsNullOrEmpty(titleId) && titleId.Length < 8)
+            {
+                titleId = titleId.PadLeft(8, '0');
+            }
             return Path.Combine(CacheFolder, LocalFolder, titleId, $"{assetType}-{hash}.png");
         }
 
         public static BitmapImage LoadImageFromCache(string cachePath)
         {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.CreateOptions = BitmapCreateOptions.None;
-            bitmap.UriSource = new Uri(cachePath, UriKind.Relative);
-            bitmap.EndInit();
-            bitmap.Freeze(); // Makes the image thread-safe
-            return bitmap;
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.CreateOptions = BitmapCreateOptions.None;
+                using (var stream = new FileStream(cachePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                    bitmap.Freeze(); // Makes the image thread-safe
+                }
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                MainWindow.SaveError(ex);
+                return null;
+            }
         }
 
         public static void ClearCache()

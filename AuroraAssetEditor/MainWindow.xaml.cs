@@ -450,7 +450,7 @@ namespace AuroraAssetEditor {
                                 Screens = CountFiles(dirInfo, "screenshot*.png")
                             };
 
-                            // Check and update cache status for this folder
+                            // Pre-cache the assets information
                             if (!string.IsNullOrEmpty(folder.TitleId))
                             {
                                 folder.CachedAssets = AssetCache.CheckFolderCache(dirInfo.FullName, folder.TitleId);
@@ -619,13 +619,7 @@ namespace AuroraAssetEditor {
         private void FolderListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var selectedFolder = FolderListView.SelectedItem as FolderInfo;
-            if (selectedFolder == null) return;
-
-            var path = AssetPathTextBox.Text;
-            if (string.IsNullOrWhiteSpace(path)) return;
-
-            var folderPath = Path.Combine(path, selectedFolder.GameName);
-            if (!Directory.Exists(folderPath)) return;
+            if (selectedFolder == null || selectedFolder.CachedAssets == null) return;
 
             // Clear existing assets
             ClearLocalControls();
@@ -641,74 +635,22 @@ namespace AuroraAssetEditor {
 
             try
             {
-                // Load cached assets first
-                if (selectedFolder.CachedAssets != null)
+                // Load all cached assets
+                foreach (var cachedAsset in selectedFolder.CachedAssets)
                 {
-                    foreach (var cachedAsset in selectedFolder.CachedAssets)
+                    var assetType = cachedAsset.Key;
+                    var (filePath, hash) = cachedAsset.Value;
+                    var cachePath = AssetCache.GetCachePath(selectedFolder.TitleId, assetType, hash);
+
+                    if (File.Exists(cachePath))
                     {
-                        var assetType = cachedAsset.Key;
-                        var (filePath, hash) = cachedAsset.Value;
-                        var cachePath = AssetCache.GetCachePath(selectedFolder.TitleId, assetType, hash);
-
-                        if (File.Exists(cachePath))
+                        var image = AssetCache.LoadImageFromCache(cachePath);
+                        if (image != null)
                         {
-                            var image = AssetCache.LoadImageFromCache(cachePath);
-                            if (image != null)
+                            var control = FindName($"local_{assetType}") as WpfImage;
+                            if (control != null)
                             {
-                                switch (assetType)
-                                {
-                                    case "boxart":
-                                        var localBoxart = FindName("local_boxart") as WpfImage;
-                                        if (localBoxart != null) localBoxart.Source = image;
-                                        break;
-                                    case "background":
-                                        var localBackground = FindName("local_background") as WpfImage;
-                                        if (localBackground != null) localBackground.Source = image;
-                                        break;
-                                    case "banner":
-                                        var localBanner = FindName("local_banner") as WpfImage;
-                                        if (localBanner != null) localBanner.Source = image;
-                                        break;
-                                    case "icon":
-                                        var localIcon = FindName("local_icon") as WpfImage;
-                                        if (localIcon != null) localIcon.Source = image;
-                                        break;
-                                    case "screenshot":
-                                        for (int i = 1; i <= 5; i++)
-                                        {
-                                            var imageControl = FindName($"local_screenshot{i}") as WpfImage;
-                                            if (imageControl != null && imageControl.Source == null)
-                                            {
-                                                imageControl.Source = image;
-                                                break;
-                                            }
-                                        }
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Load any missing assets from .asset files
-                var patterns = new[] {
-                    ("GC*.asset", "boxart"),
-                    ("BK*.asset", "background"),
-                    ("GL*.asset", "banner"),
-                    ("GL*.asset", "icon"),
-                    ("SS*.asset", "screenshot")
-                };
-
-                foreach (var (pattern, assetType) in patterns)
-                {
-                    if (!selectedFolder.CachedAssets?.ContainsKey(assetType) ?? true)
-                    {
-                        var files = Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories);
-                        foreach (var file in files)
-                        {
-                            if (VerifyAuroraMagic(file))
-                            {
-                                LoadAuroraAsset(file);
+                                control.Source = image;
                             }
                         }
                     }
@@ -742,8 +684,8 @@ namespace AuroraAssetEditor {
         public string Icon { get; set; }
         public string Screens { get; set; }
 
-        // Cache status for each asset type
-        public Dictionary<string, (string FilePath, string Hash)> CachedAssets { get; set; } = new Dictionary<string, (string, string)>();
+        // Store cache information for quick access
+        public Dictionary<string, (string FilePath, string Hash)> CachedAssets { get; set; }
 
         public System.Windows.Media.Brush BackgroundColor
         {
