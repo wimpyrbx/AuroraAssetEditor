@@ -6,20 +6,21 @@
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="AuroraAssetEditor.MainWindow"
         Title="Aurora Asset Editor v{0}.{1}.{2} by Swizzy thanks to MaesterRowen"
         Width="1422"
-        Height="600"
+        Height="923"
         MinWidth="1280"
         MinHeight="600">
 
     <!-- Main Grid container -->
     <Grid>
         <!-- Content Grid -->
-        <Grid Panel.ZIndex="0">
+        <Grid Panel.ZIndex="0" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <!-- Max width & anchored to the bottom -->
+                <ColumnDefinition Width="254*"/>
                 <!-- For FTP Assets -->
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="213*"/>
                 <!-- For Image Preview -->
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="244*"/>
                 <!-- For Local Assets -->
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
@@ -70,112 +71,80 @@
             </Menu>
 
             <!-- FTP Assets Column -->
-            <ContentControl x:Name="FtpAssetsContainer" 
-                          Grid.Row="1" 
-                          Grid.Column="0"/>
+            <ContentControl x:Name="FtpAssetsContainer"
+                           Grid.Row="1"
+                          Grid.Column="0" Height="NaN" Width="NaN"/>
 
             <!-- Image Preview Column -->
-            <Grid Grid.Row="1" Grid.Column="1" Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Assets -->
-                <Grid Grid.Row="0" Grid.Column="0" Background="#FFADADAD" Margin="5,5,5,5" Height="100">
-                    <Image x:Name="local_boxart" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="0" Grid.Column="1" Background="#FFADADAD" Margin="5,5,5,5" Height="100">
-                    <Image x:Name="local_background" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="0" Grid.Column="2" Background="#FFADADAD" Margin="10,5,0,5" Height="100" HorizontalAlignment="Left" Width="170" Grid.ColumnSpan="2">
-                    <Image x:Name="local_banner" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="0" Grid.Column="4" Background="#FFADADAD" Margin="5,5,5,5" Height="100">
-                    <Image x:Name="local_icon" Stretch="Fill" Margin="5"/>
-                </Grid>
-
-                <!-- Screenshots -->
-                <Grid Grid.Row="1" Grid.Column="0" Background="#FFADADAD" Margin="5,5,5,5" Height="60">
-                    <Image x:Name="local_screenshot1" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="1" Grid.Column="1" Background="#FFADADAD" Margin="5,5,5,5" Height="60">
-                    <Image x:Name="local_screenshot2" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="1" Grid.Column="2" Background="#FFADADAD" Margin="5,5,5,5" Height="60">
-                    <Image x:Name="local_screenshot3" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="1" Grid.Column="3" Background="#FFADADAD" Margin="5,5,5,5" Height="60">
-                    <Image x:Name="local_screenshot4" Stretch="Fill" Margin="5"/>
-                </Grid>
-                <Grid Grid.Row="1" Grid.Column="4" Background="#FFADADAD" Margin="5,5,5,5" Height="60">
-                    <Image x:Name="local_screenshot5" Stretch="Fill" Margin="5"/>
-                </Grid>
-
-                <!-- Test Asset List Control -->
-            </Grid>
 
             <!-- Local Assets Column -->
-            <GroupBox Header="Local Assets" 
-                      BorderBrush="Black" 
-                      Grid.Row="1"
-                      Grid.Column="2"
-                      Margin="5">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Row="1" Grid.Column="2" Height="879" VerticalAlignment="Bottom">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="25*"/>
+                    <RowDefinition Height="226*"/>
+                    <RowDefinition Height="377"/>
+                </Grid.RowDefinitions>
 
-                    <TextBox x:Name="AssetPathTextBox" 
-                        FontSize="10"
-                        Padding="5,2,5,0"
-                        Grid.Column="0"
-                        Margin="5"/>
+                <!-- ListView in top row -->
+                <GroupBox Header="Local Assets" 
+                         BorderBrush="Black" Grid.RowSpan="2" Height="NaN" Width="NaN">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <Button Content="Load Assets" 
-                        x:Name="LoadAssetsButton" 
-                        Click="LoadAssetsButton_Click"
-                        FontSize="10"
-                        Grid.Column="1"
-                        HorizontalAlignment="Right"
-                        Padding="10,5"
-                        Margin="0,5,5,5"/>
+                        <TextBox x:Name="AssetPathTextBox" 
+                            FontSize="10"
+                            Padding="5,2,5,0"
+                            Grid.Column="0"
+                            Margin="5"/>
 
-                    <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
-                        <controls:AssetListControl x:Name="LocalAssetList"
-                                                 SelectionChanged="FolderListView_SelectionChanged"
-                                                 Margin="5"/>
+                        <Button Content="Load Assets" 
+                            x:Name="LoadAssetsButton" 
+                            Click="LoadAssetsButton_Click"
+                            FontSize="10"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            Padding="10,5"
+                            Margin="0,5,5,5"/>
 
-                        <Border x:Name="ListViewBusyIndicator" 
-                               Background="#80000000" 
-                               Visibility="Collapsed">
-                            <StackPanel HorizontalAlignment="Center" 
-                                      VerticalAlignment="Center">
-                                <TextBlock Text="Loading Assets..." 
-                                         Foreground="White" 
-                                         FontSize="16" 
-                                         Margin="0,0,0,10"/>
-                                <ProgressBar IsIndeterminate="True" 
-                                           Width="200" 
-                                           Height="2"/>
-                            </StackPanel>
-                        </Border>
+                        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
+                            <controls:AssetListControl x:Name="LocalAssetList"
+                                                     SelectionChanged="FolderListView_SelectionChanged"
+                                                     Margin="5"/>
+
+                            <Border x:Name="ListViewBusyIndicator" 
+                                   Background="#80000000" 
+                                   Visibility="Collapsed">
+                                <StackPanel HorizontalAlignment="Center" 
+                                          VerticalAlignment="Center">
+                                    <TextBlock Text="Loading Assets..." 
+                                             Foreground="White" 
+                                             FontSize="16" 
+                                             Margin="0,0,0,10"/>
+                                    <ProgressBar IsIndeterminate="True" 
+                                               Width="200" 
+                                               Height="2"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </GroupBox>
+                </GroupBox>
+
+                <!-- AssetArtwork in bottom row -->
+                <controls:AssetArtwork x:Name="LocalAssetArtwork"
+                    Margin="-360,116,0,0"
+                    ImageSpacing="3"
+                    NavigationStyle="Minimal"
+                    Width="337" Height="301" VerticalAlignment="Top" HorizontalAlignment="Left" Grid.Row="1"/>
+            </Grid>
+            <Label Grid.Column="1" Content="Title Name:" HorizontalAlignment="Left" Margin="25,598,0,0" Grid.Row="1" VerticalAlignment="Top"/>
+            <Label Grid.Column="1" Content="Label" HorizontalAlignment="Left" Margin="100,598,0,0" Grid.Row="1" VerticalAlignment="Top"/>
         </Grid>
 
         <!-- Overlay Grid -->
@@ -192,7 +161,7 @@
                     Padding="10">
                 <Grid MinWidth="300"
                       MinHeight="300"
-                      HorizontalAlignment="Center"
+                  HorizontalAlignment="Center"
                       VerticalAlignment="Center">
                     <ProgressBar x:Name="GlobalBusyIndicator" 
                                Grid.RowSpan="4"

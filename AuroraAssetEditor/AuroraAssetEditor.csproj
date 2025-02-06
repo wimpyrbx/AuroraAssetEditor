@@ -65,6 +65,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="AuroraAsset">
+      <HintPath>$(ProjectDir)AuroraAsset.dll</HintPath>
+      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="AuroraAsset.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

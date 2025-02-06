@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="AuroraAssetEditor.Controls.AssetArtwork"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             x:Name="Root">
+    <UserControl.Resources>
+        <!-- Default Style -->
+        <Style x:Key="NavigationButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Background" Value="Black"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="10">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Minimal Style -->
+        <Style x:Key="MinimalNavigationButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern Style -->
+        <Style x:Key="ModernNavigationButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Background" Value="#E0E0E0"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="#CCCCCC"
+                                BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#D0D0D0"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#C0C0C0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="NavigationTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="5,0"/>
+        </Style>
+
+        <Style x:Key="MinimalNavigationTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="3,0"/>
+        </Style>
+
+        <Style x:Key="ModernNavigationTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="6,0"/>
+        </Style>
+
+        <Style x:Key="ImageContainerStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FFADADAD"/>
+            <Setter Property="Margin" Value="{Binding ElementName=Root, Path=ImageSpacing}"/>
+            <Setter Property="BorderBrush" Value="Black"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="MainGrid" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Banner/Icon Navigation -->
+            <RowDefinition Height="Auto"/> <!-- Banner/Icon Row -->
+            <RowDefinition Height="Auto"/> <!-- Boxart/Background Navigation -->
+            <RowDefinition Height="Auto"/> <!-- Boxart/Background Row -->
+            <RowDefinition Height="Auto"/> <!-- Screenshots Row -->
+        </Grid.RowDefinitions>
+
+        <!-- Banner and Icon Navigation Row -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="35*"/>
+                <ColumnDefinition Width="8*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Banner Navigation -->
+            <StackPanel Grid.Column="0" 
+                      Orientation="Horizontal" 
+                      HorizontalAlignment="Center"
+                      x:Name="BannerNavigation" 
+                      Visibility="Collapsed"
+                      Margin="0,2">
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnPreviousImage" 
+                        Tag="Banner" 
+                        Content="◀"/>
+                <TextBlock x:Name="BannerCounter" 
+                         Style="{StaticResource NavigationTextStyle}"/>
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnNextImage" 
+                        Tag="Banner" 
+                        Content="▶"/>
+            </StackPanel>
+
+            <!-- Icon Navigation -->
+            <StackPanel Grid.Column="1" 
+                      Orientation="Horizontal" 
+                      HorizontalAlignment="Center"
+                      x:Name="IconNavigation" 
+                      Visibility="Collapsed"
+                      Margin="0,2">
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnPreviousImage" 
+                        Tag="Icon" 
+                        Content="◀"/>
+                <TextBlock x:Name="IconCounter" 
+                         Style="{StaticResource NavigationTextStyle}"/>
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnNextImage" 
+                        Tag="Icon" 
+                        Content="▶"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Banner and Icon Row -->
+        <Grid Grid.Row="1" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="35*"/>
+                <ColumnDefinition Width="8*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Banner -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="0" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Banner">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="35" Height="8">
+                        <Image x:Name="BannerImage" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Icon -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="1" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Icon">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="8" Height="8">
+                        <Image x:Name="IconImage" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+        </Grid>
+
+        <!-- Boxart and Background Navigation Row -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="18*"/>
+                <ColumnDefinition Width="25*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Boxart Navigation -->
+            <StackPanel Grid.Column="0" 
+                      Orientation="Horizontal" 
+                      HorizontalAlignment="Center"
+                      x:Name="BoxartNavigation" 
+                      Visibility="Collapsed"
+                      Margin="0,2">
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnPreviousImage" 
+                        Tag="Boxart" 
+                        Content="◀"/>
+                <TextBlock x:Name="BoxartCounter" 
+                         Style="{StaticResource NavigationTextStyle}"/>
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnNextImage" 
+                        Tag="Boxart" 
+                        Content="▶"/>
+            </StackPanel>
+
+            <!-- Background Navigation -->
+            <StackPanel Grid.Column="1" 
+                      Orientation="Horizontal" 
+                      HorizontalAlignment="Center"
+                      x:Name="BackgroundNavigation" 
+                      Visibility="Collapsed"
+                      Margin="0,2">
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnPreviousImage" 
+                        Tag="Background" 
+                        Content="◀"/>
+                <TextBlock x:Name="BackgroundCounter" 
+                         Style="{StaticResource NavigationTextStyle}"/>
+                <Button Style="{StaticResource NavigationButtonStyle}"
+                        Click="OnNextImage" 
+                        Tag="Background" 
+                        Content="▶"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Boxart and Background Row -->
+        <Grid Grid.Row="3" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="25*"/>
+                <ColumnDefinition Width="27*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Boxart -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="0" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Boxart">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="45" Height="30">
+                        <Image x:Name="BoxartImage" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Background -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="1" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Background">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="48" Height="27">
+                        <Image x:Name="BackgroundImage" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+        </Grid>
+
+        <!-- Screenshots Row -->
+        <Grid Grid.Row="4" HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Screenshot 1 -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="0" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Screenshot1">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="16" Height="9">
+                        <Image x:Name="Screenshot1Image" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Screenshot 2 -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="1" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Screenshot2">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="16" Height="9">
+                        <Image x:Name="Screenshot2Image" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Screenshot 3 -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="2" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Screenshot3">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="16" Height="9">
+                        <Image x:Name="Screenshot3Image" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Screenshot 4 -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="3" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Screenshot4">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="16" Height="9">
+                        <Image x:Name="Screenshot4Image" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+
+            <!-- Screenshot 5 -->
+            <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="4" HorizontalAlignment="Stretch"
+                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Screenshot5">
+                <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
+                    <Grid Width="16" Height="9">
+                        <Image x:Name="Screenshot5Image" Stretch="Fill"/>
+                    </Grid>
+                </Viewbox>
+            </Border>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Border x:Name="LoadingOverlay" 
+                Grid.RowSpan="5" 
+                Panel.ZIndex="1000"
+                Background="#80000000" 
+                Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" 
+                       VerticalAlignment="Center">
+                <TextBlock Text="Loading Images..." 
+                          Foreground="White" 
+                          FontSize="16" 
+                          FontWeight="Bold"
+                          Margin="0,0,0,10"/>
+                <ProgressBar IsIndeterminate="True" 
+                            Width="200" 
+                            Height="4"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl> 

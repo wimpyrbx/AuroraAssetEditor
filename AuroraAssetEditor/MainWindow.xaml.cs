@@ -5,18 +5,18 @@
 //  Created by Swizzy on 08/05/2015
 //  Copyright (c) 2015 Swizzy. All rights reserved.
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Reflection;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Data;
@@ -28,11 +28,11 @@ using AuroraAssetEditor.Models;
 using AuroraAssetEditor.Controls;
 using AuroraAssetEditor.Helpers;
 using AuroraAssetEditor.Properties;
-using Microsoft.Win32;
-using Ookii.Dialogs.Wpf;
-using Image = System.Drawing.Image;
+    using Microsoft.Win32;
+    using Ookii.Dialogs.Wpf;
+    using Image = System.Drawing.Image;
 using WpfImage = System.Windows.Controls.Image;
-using Size = System.Drawing.Size;
+    using Size = System.Drawing.Size;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Diagnostics;
@@ -122,80 +122,62 @@ namespace AuroraAssetEditor {
                         switch (assetType)
                         {
                             case "GC":
-                                var localBoxart = FindName("local_boxart") as WpfImage;
-                                if (localBoxart != null)
+                                if (assetInfo.Value.HasCache)
                                 {
-                                    if (assetInfo.Value.HasCache)
-                                    {
-                                        localBoxart.Source = AssetCache.LoadImageFromCache(
-                                            AssetCache.GetCachePath(titleId, "boxart", assetInfo.Value.Hash));
-                                    }
-                                    else
-                                    {
-                                        ProcessAndCacheAsset(filename, titleId, "boxart", assetInfo.Value.Hash, localBoxart);
-                                        selectedFolder.CachedAssets[assetInfo.Key] = 
-                                            (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
-                                    }
+                                    LocalAssetArtwork.BoxartSource = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "boxart", assetInfo.Value.Hash));
+                                }
+                                else
+                                {
+                                    ProcessAndCacheAsset(filename, titleId, "boxart", assetInfo.Value.Hash);
+                                    selectedFolder.CachedAssets[assetInfo.Key] = 
+                                        (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
                                 }
                                 break;
 
                             case "BK":
-                                var localBackground = FindName("local_background") as WpfImage;
-                                if (localBackground != null)
+                                if (assetInfo.Value.HasCache)
                                 {
-                                    if (assetInfo.Value.HasCache)
-                                    {
-                                        localBackground.Source = AssetCache.LoadImageFromCache(
-                                            AssetCache.GetCachePath(titleId, "background", assetInfo.Value.Hash));
-                                    }
-                                    else
-                                    {
-                                        ProcessAndCacheAsset(filename, titleId, "background", assetInfo.Value.Hash, localBackground);
-                                        selectedFolder.CachedAssets[assetInfo.Key] = 
-                                            (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
-                                    }
+                                    LocalAssetArtwork.BackgroundSource = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "background", assetInfo.Value.Hash));
+                                }
+                                else
+                                {
+                                    ProcessAndCacheAsset(filename, titleId, "background", assetInfo.Value.Hash);
+                                    selectedFolder.CachedAssets[assetInfo.Key] = 
+                                        (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
                                 }
                                 break;
 
                             case "GL":
-                                var localBanner = FindName("local_banner") as WpfImage;
-                                var localIcon = FindName("local_icon") as WpfImage;
-                                if (localBanner != null || localIcon != null)
+                                if (assetInfo.Value.HasCache)
                                 {
-                                    if (assetInfo.Value.HasCache)
-                                    {
-                                        if (localBanner != null)
-                                        {
-                                            localBanner.Source = AssetCache.LoadImageFromCache(
-                                                AssetCache.GetCachePath(titleId, "banner", assetInfo.Value.Hash));
-                                        }
-                                        if (localIcon != null)
-                                        {
-                                            localIcon.Source = AssetCache.LoadImageFromCache(
-                                                AssetCache.GetCachePath(titleId, "icon", assetInfo.Value.Hash));
-                                        }
-                                    }
-                                    else
-                                    {
-                                        ProcessAndCacheIconBanner(filename, titleId, assetInfo.Value.Hash, localBanner, localIcon);
-                                        selectedFolder.CachedAssets[assetInfo.Key] = 
-                                            (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
-                                    }
+                                    LocalAssetArtwork.BannerSource = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "banner", assetInfo.Value.Hash));
+                                    LocalAssetArtwork.IconSource = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "icon", assetInfo.Value.Hash));
+                                }
+                                else
+                                {
+                                    ProcessAndCacheIconBanner(filename, titleId, assetInfo.Value.Hash);
+                                    selectedFolder.CachedAssets[assetInfo.Key] = 
+                                        (assetInfo.Value.FilePath, assetInfo.Value.Hash, true);
                                 }
                                 break;
 
                             case "SS":
                                 if (assetInfo.Value.HasCache)
                                 {
-                                    for (var i = 1; i <= 5; i++)
-                                    {
-                                        var imageControl = FindName($"local_screenshot{i}") as WpfImage;
-                                        if (imageControl != null)
-                                        {
-                                            imageControl.Source = AssetCache.LoadImageFromCache(
-                                                AssetCache.GetCachePath(titleId, $"screenshot{i}", assetInfo.Value.Hash));
-                                        }
-                                    }
+                                    LocalAssetArtwork.Screenshot1Source = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "screenshot1", assetInfo.Value.Hash));
+                                    LocalAssetArtwork.Screenshot2Source = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "screenshot2", assetInfo.Value.Hash));
+                                    LocalAssetArtwork.Screenshot3Source = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "screenshot3", assetInfo.Value.Hash));
+                                    LocalAssetArtwork.Screenshot4Source = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "screenshot4", assetInfo.Value.Hash));
+                                    LocalAssetArtwork.Screenshot5Source = AssetCache.LoadImageFromCache(
+                                        AssetCache.GetCachePath(titleId, "screenshot5", assetInfo.Value.Hash));
                                 }
                                 else
                                 {
@@ -217,7 +199,7 @@ namespace AuroraAssetEditor {
             }
         }
 
-        private void ProcessAndCacheAsset(string filename, string titleId, string assetType, string hash, WpfImage imageControl)
+        private void ProcessAndCacheAsset(string filename, string titleId, string assetType, string hash)
         {
             var assetBytes = File.ReadAllBytes(filename);
             var asset = new AuroraAsset.AssetFile(assetBytes);
@@ -225,51 +207,57 @@ namespace AuroraAssetEditor {
 
             switch (assetType)
             {
-                case "boxart": image = asset.HasBoxArt ? asset.GetBoxart() : null; break;
-                case "background": image = asset.HasBackground ? asset.GetBackground() : null; break;
-            }
-
-            if (image != null)
-            {
-                using (image)
-                {
-                    AssetCache.CacheImage(image, hash, titleId, assetType);
-                    imageControl.Source = AssetCache.LoadImageFromCache(
-                        AssetCache.GetCachePath(titleId, assetType, hash));
-                }
+                case "boxart": 
+                    image = asset.HasBoxArt ? asset.GetBoxart() : null;
+                    if (image != null)
+                    {
+                        using (image)
+                        {
+                            AssetCache.CacheImage(image, hash, titleId, assetType);
+                            LocalAssetArtwork.BoxartSource = AssetCache.LoadImageFromCache(
+                                AssetCache.GetCachePath(titleId, assetType, hash));
+                        }
+                    }
+                    break;
+                case "background": 
+                    image = asset.HasBackground ? asset.GetBackground() : null;
+                    if (image != null)
+                    {
+                        using (image)
+                        {
+                            AssetCache.CacheImage(image, hash, titleId, assetType);
+                            LocalAssetArtwork.BackgroundSource = AssetCache.LoadImageFromCache(
+                                AssetCache.GetCachePath(titleId, assetType, hash));
+                        }
+                    }
+                    break;
             }
         }
 
-        private void ProcessAndCacheIconBanner(string filename, string titleId, string hash, WpfImage bannerControl, WpfImage iconControl)
+        private void ProcessAndCacheIconBanner(string filename, string titleId, string hash)
         {
             var assetBytes = File.ReadAllBytes(filename);
             var asset = new AuroraAsset.AssetFile(assetBytes);
 
             if (asset.HasIconBanner)
             {
-                if (bannerControl != null)
+                using (var bannerImage = asset.GetBanner())
                 {
-                    using (var bannerImage = asset.GetBanner())
+                    if (bannerImage != null)
                     {
-                        if (bannerImage != null)
-                        {
-                            AssetCache.CacheImage(bannerImage, hash, titleId, "banner");
-                            bannerControl.Source = AssetCache.LoadImageFromCache(
-                                AssetCache.GetCachePath(titleId, "banner", hash));
-                        }
+                        AssetCache.CacheImage(bannerImage, hash, titleId, "banner");
+                        LocalAssetArtwork.BannerSource = AssetCache.LoadImageFromCache(
+                            AssetCache.GetCachePath(titleId, "banner", hash));
                     }
                 }
 
-                if (iconControl != null)
+                using (var iconImage = asset.GetIcon())
                 {
-                    using (var iconImage = asset.GetIcon())
+                    if (iconImage != null)
                     {
-                        if (iconImage != null)
-                        {
-                            AssetCache.CacheImage(iconImage, hash, titleId, "icon");
-                            iconControl.Source = AssetCache.LoadImageFromCache(
-                                AssetCache.GetCachePath(titleId, "icon", hash));
-                        }
+                        AssetCache.CacheImage(iconImage, hash, titleId, "icon");
+                        LocalAssetArtwork.IconSource = AssetCache.LoadImageFromCache(
+                            AssetCache.GetCachePath(titleId, "icon", hash));
                     }
                 }
             }
@@ -289,12 +277,19 @@ namespace AuroraAssetEditor {
                     {
                         using (var screenshot = screenshots[i])
                         {
-                            AssetCache.CacheImage(screenshot, hash, titleId, $"screenshot{i + 1}");
-                            var imageControl = FindName($"local_screenshot{i + 1}") as WpfImage;
-                            if (imageControl != null)
+                            var screenshotType = $"screenshot{i + 1}";
+                            AssetCache.CacheImage(screenshot, hash, titleId, screenshotType);
+                            
+                            var source = AssetCache.LoadImageFromCache(
+                                AssetCache.GetCachePath(titleId, screenshotType, hash));
+
+                            switch (i)
                             {
-                                imageControl.Source = AssetCache.LoadImageFromCache(
-                                    AssetCache.GetCachePath(titleId, $"screenshot{i + 1}", hash));
+                                case 0: LocalAssetArtwork.Screenshot1Source = source; break;
+                                case 1: LocalAssetArtwork.Screenshot2Source = source; break;
+                                case 2: LocalAssetArtwork.Screenshot3Source = source; break;
+                                case 3: LocalAssetArtwork.Screenshot4Source = source; break;
+                                case 4: LocalAssetArtwork.Screenshot5Source = source; break;
                             }
                         }
                     }
@@ -304,28 +299,7 @@ namespace AuroraAssetEditor {
 
         private void ClearLocalControls()
         {
-            // Clear all image controls
-            var localBoxart = FindName("local_boxart") as WpfImage;
-            if (localBoxart != null) localBoxart.Source = null;
-
-            var localBackground = FindName("local_background") as WpfImage;
-            if (localBackground != null) localBackground.Source = null;
-
-            var localBanner = FindName("local_banner") as WpfImage;
-            if (localBanner != null) localBanner.Source = null;
-
-            var localIcon = FindName("local_icon") as WpfImage;
-            if (localIcon != null) localIcon.Source = null;
-
-            // Clear screenshot controls
-            for (int i = 1; i <= 5; i++)
-            {
-                var imageControl = FindName($"local_screenshot{i}") as WpfImage;
-                if (imageControl != null)
-                {
-                    imageControl.Source = null;
-                }
-            }
+            LocalAssetArtwork.ClearAll();
         }
 
         private ImageSource ConvertToImageSource(Image img)
@@ -353,7 +327,7 @@ namespace AuroraAssetEditor {
             }
             catch (Exception ex)
             {
-                SaveError(ex);
+                                 SaveError(ex);
                 return null;
             }
         }
@@ -396,11 +370,11 @@ namespace AuroraAssetEditor {
             {
                 LocalAssetList.SetItems(null);
                 Debug.WriteLine("Cleared LocalAssetList items");
-            }
-            else
-            {
+                }
+                else
+                {
                 Debug.WriteLine("Warning: LocalAssetList is null");
-            }
+                }
 
             if (ListViewBusyIndicator != null)
             {
@@ -408,16 +382,16 @@ namespace AuroraAssetEditor {
                 Debug.WriteLine("Set ListViewBusyIndicator to visible");
             }
             else
-            {
+        {
                 Debug.WriteLine("Warning: ListViewBusyIndicator is null");
-            }
+        }
 
             // Start background work
             Debug.WriteLine("Starting background work");
             Task.Run(() => 
+        {
+            try
             {
-                try
-                {
                     Debug.WriteLine("Background task started");
                     // Create list to store results
                     var results = new List<FolderInfo>();
@@ -488,19 +462,19 @@ namespace AuroraAssetEditor {
                                     Debug.WriteLine("Items set successfully");
                                     LocalAssetList.RefreshView();
                                     Debug.WriteLine("View refreshed");
-                                }
-                                else
-                                {
-                                    Debug.WriteLine("Warning: No results to set");
-                                }
-                            }
-                            else
-                            {
-                                Debug.WriteLine("Error: LocalAssetList is null on UI thread");
-                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
+                                    Debug.WriteLine("Warning: No results to set");
+                        }
+                    }
+                    else
+                    {
+                                Debug.WriteLine("Error: LocalAssetList is null on UI thread");
+                }
+            }
+            catch (Exception ex)
+            {
                             Debug.WriteLine($"Error on UI thread: {ex.Message}");
                             MessageBox.Show($"Error setting items: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
@@ -671,10 +645,10 @@ namespace AuroraAssetEditor {
                     view.SortDescriptions.Add(new SortDescription(propertyName, ListSortDirection.Ascending));
                 }
             }
-        }
-    }
+		}
+	}
 
-    public class FolderInfo : INotifyPropertyChanged, IAssetItem
+	public class FolderInfo : INotifyPropertyChanged, IAssetItem
     {
         private System.Windows.Media.Brush _backgroundColor = System.Windows.Media.Brushes.Transparent;
 
