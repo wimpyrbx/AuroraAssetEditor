@@ -7,6 +7,9 @@
              mc:Ignorable="d" 
              x:Name="Root">
     <UserControl.Resources>
+        <!-- Default Border Brush -->
+        <SolidColorBrush x:Key="DefaultBorderBrush" Color="Black"/>
+
         <!-- Default Style -->
         <Style x:Key="NavigationButtonStyle" TargetType="Button">
             <Setter Property="Width" Value="20"/>
@@ -180,7 +183,8 @@
 
             <!-- Banner -->
             <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="0" HorizontalAlignment="Stretch"
-                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Banner">
+                   MouseLeftButtonDown="OnImageContainerMouseDown" 
+                   Tag="Banner">
                 <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
                     <Grid Width="35" Height="8">
                         <Image x:Name="BannerImage" Stretch="Fill"/>
@@ -190,7 +194,8 @@
 
             <!-- Icon -->
             <Border Style="{StaticResource ImageContainerStyle}" Grid.Column="1" HorizontalAlignment="Stretch"
-                   MouseLeftButtonDown="OnImageContainerMouseDown" Tag="Icon">
+                   MouseLeftButtonDown="OnImageContainerMouseDown" 
+                   Tag="Icon">
                 <Viewbox Stretch="Fill" HorizontalAlignment="Stretch">
                     <Grid Width="8" Height="8">
                         <Image x:Name="IconImage" Stretch="Fill"/>

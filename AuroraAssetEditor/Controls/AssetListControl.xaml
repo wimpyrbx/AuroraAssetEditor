@@ -41,63 +41,127 @@
                 </ListView.ItemContainerStyle>
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="Title Name" DisplayMemberBinding="{Binding GameName}">
+                        <GridViewColumn Width="150" DisplayMemberBinding="{Binding GameName}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="Title Name"/>
+                            </GridViewColumn.Header>
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                    <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding GameName}" TextAlignment="Left"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Width="60" DisplayMemberBinding="{Binding TitleId}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="TitleID"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                     <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding TitleId}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="TitleID" DisplayMemberBinding="{Binding TitleId}">
-                            <GridViewColumn.HeaderContainerStyle>
-                                <Style TargetType="GridViewColumnHeader">
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                    <EventSetter Event="Click" Handler="GridViewColumnHeader_Click"/>
-                                </Style>
-                            </GridViewColumn.HeaderContainerStyle>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Assets" Width="40" DisplayMemberBinding="{Binding Assets}">
-                            <GridViewColumn.HeaderContainerStyle>
-                                <Style TargetType="GridViewColumnHeader">
-                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                                </Style>
-                            </GridViewColumn.HeaderContainerStyle>
-                        </GridViewColumn>
-                        <GridViewColumn Header="Boxart" Width="40" DisplayMemberBinding="{Binding Boxart}">
+                        <GridViewColumn Width="35" DisplayMemberBinding="{Binding Assets}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="Assets"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Assets}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Back" Width="40" DisplayMemberBinding="{Binding Back}">
+                        <GridViewColumn Width="25" DisplayMemberBinding="{Binding Boxart}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="B" ToolTip="Boxart"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Boxart}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Banner" Width="40" DisplayMemberBinding="{Binding Banner}">
+                        <GridViewColumn Width="25" DisplayMemberBinding="{Binding Back}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="B" ToolTip="Background"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Back}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Icon" Width="40" DisplayMemberBinding="{Binding Icon}">
+                        <GridViewColumn Width="25" DisplayMemberBinding="{Binding Banner}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="B" ToolTip="Banner"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Banner}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
-                        <GridViewColumn Header="Screens" Width="40" DisplayMemberBinding="{Binding Screens}">
+                        <GridViewColumn Width="25" DisplayMemberBinding="{Binding Icon}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="I" ToolTip="Icon"/>
+                            </GridViewColumn.Header>
                             <GridViewColumn.HeaderContainerStyle>
                                 <Style TargetType="GridViewColumnHeader">
                                     <Setter Property="HorizontalContentAlignment" Value="Center"/>
                                 </Style>
                             </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Icon}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Width="25" DisplayMemberBinding="{Binding Screens}">
+                            <GridViewColumn.Header>
+                                <TextBlock Text="S" ToolTip="Screenshots"/>
+                            </GridViewColumn.Header>
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="GridViewColumnHeader">
+                                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Screens}" TextAlignment="Center"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
                         </GridViewColumn>
                     </GridView>
                 </ListView.View>

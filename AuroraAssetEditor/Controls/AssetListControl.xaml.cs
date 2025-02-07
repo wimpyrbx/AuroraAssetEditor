@@ -19,23 +19,23 @@ namespace AuroraAssetEditor.Controls
 
         public AssetListControl()
         {
-            Debug.WriteLine("Initializing AssetListControl");
+            // Debug.WriteLine("Initializing AssetListControl");
             InitializeComponent();
             
             _itemsViewSource = new CollectionViewSource();
-            Debug.WriteLine("Created CollectionViewSource");
+            // Debug.WriteLine("Created CollectionViewSource");
             
             ItemListView.ItemsSource = _itemsViewSource.View;
-            Debug.WriteLine("Set ItemListView.ItemsSource");
+            // Debug.WriteLine("Set ItemListView.ItemsSource");
             
             _itemsView = CollectionViewSource.GetDefaultView(ItemListView.ItemsSource);
-            Debug.WriteLine($"Initial _itemsView is null: {_itemsView == null}");
+            // Debug.WriteLine($"Initial _itemsView is null: {_itemsView == null}");
         }
 
         public void SetItems(System.Collections.IEnumerable items)
         {
-            Debug.WriteLine($"\n=== Setting items in AssetListControl ===");
-            Debug.WriteLine($"Items is null: {items == null}");
+            // Debug.WriteLine($"\n=== Setting items in AssetListControl ===");
+            // Debug.WriteLine($"Items is null: {items == null}");
             
             try
             {
@@ -44,12 +44,12 @@ namespace AuroraAssetEditor.Controls
                 ItemListView.ItemsSource = _itemsViewSource.View;
                 _itemsView = CollectionViewSource.GetDefaultView(ItemListView.ItemsSource);
                 
-                Debug.WriteLine($"_itemsView is null after setting: {_itemsView == null}");
-                Debug.WriteLine($"ItemListView.ItemsSource is null: {ItemListView.ItemsSource == null}");
+                // Debug.WriteLine($"_itemsView is null after setting: {_itemsView == null}");
+                // Debug.WriteLine($"ItemListView.ItemsSource is null: {ItemListView.ItemsSource == null}");
                 
                 if (_itemsView != null)
                 {
-                    Debug.WriteLine("CollectionView created successfully");
+                    // Debug.WriteLine("CollectionView created successfully");
                     if (items != null)
                     {
                         var count = 0;
@@ -58,75 +58,75 @@ namespace AuroraAssetEditor.Controls
                             count++;
                             if (item is FolderInfo folderInfo)
                             {
-                                Debug.WriteLine($"Item {count}: GameName={folderInfo.GameName}, TitleId={folderInfo.TitleId}");
+                                // Debug.WriteLine($"Item {count}: GameName={folderInfo.GameName}, TitleId={folderInfo.TitleId}");
                             }
                         }
-                        Debug.WriteLine($"Total items processed: {count}");
+                        // Debug.WriteLine($"Total items processed: {count}");
                     }
                 }
                 else
                 {
-                    Debug.WriteLine("Warning: CollectionView is null after setting items");
+                    // Debug.WriteLine("Warning: CollectionView is null after setting items");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in SetItems: {ex.Message}");
-                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                // Debug.WriteLine($"Error in SetItems: {ex.Message}");
+                // Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             }
-            Debug.WriteLine("=== Finished setting items ===\n");
+            // Debug.WriteLine("=== Finished setting items ===\n");
         }
 
         public void RefreshView()
         {
-            Debug.WriteLine("\n=== Refreshing view ===");
+            // Debug.WriteLine("\n=== Refreshing view ===");
             try
             {
                 var view = CollectionViewSource.GetDefaultView(ItemListView.ItemsSource);
                 if (view != null)
                 {
-                    Debug.WriteLine("CollectionView exists, refreshing");
+                    // Debug.WriteLine("CollectionView exists, refreshing");
                     view.Refresh();
-                    Debug.WriteLine("View refreshed");
+                    // Debug.WriteLine("View refreshed");
                 }
                 else
                 {
-                    Debug.WriteLine("Warning: Cannot refresh view - CollectionView is null");
+                    // Debug.WriteLine("Warning: Cannot refresh view - CollectionView is null");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in RefreshView: {ex.Message}");
+                // Debug.WriteLine($"Error in RefreshView: {ex.Message}");
             }
-            Debug.WriteLine("=== Finished refresh ===\n");
+            // Debug.WriteLine("=== Finished refresh ===\n");
         }
 
         public void ApplyFilter(Func<object, bool> filter)
         {
-            Debug.WriteLine("\n=== Applying filter ===");
+            // Debug.WriteLine("\n=== Applying filter ===");
             try
             {
                 var view = CollectionViewSource.GetDefaultView(ItemListView.ItemsSource);
                 if (view == null)
                 {
-                    Debug.WriteLine("Warning: Cannot apply filter - CollectionView is null");
+                    // Debug.WriteLine("Warning: Cannot apply filter - CollectionView is null");
                     return;
                 }
 
                 if (filter == null)
                 {
-                    Debug.WriteLine("Clearing filter");
+                    // Debug.WriteLine("Clearing filter");
                     view.Filter = null;
                     return;
                 }
 
-                Debug.WriteLine("Setting new filter");
+                // Debug.WriteLine("Setting new filter");
                 view.Filter = new Predicate<object>(filter);
-                Debug.WriteLine("=== Filter applied ===\n");
+                // Debug.WriteLine("=== Filter applied ===\n");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in ApplyFilter: {ex.Message}");
+                // Debug.WriteLine($"Error in ApplyFilter: {ex.Message}");
             }
         }
 
@@ -152,19 +152,19 @@ namespace AuroraAssetEditor.Controls
 
         private void ApplyFilters()
         {
-            Debug.WriteLine("\n=== Applying text filters ===");
+            // Debug.WriteLine("\n=== Applying text filters ===");
             try
             {
                 var view = CollectionViewSource.GetDefaultView(ItemListView.ItemsSource);
                 if (view == null)
                 {
-                    Debug.WriteLine("Warning: Cannot apply filters - CollectionView is null");
+                    // Debug.WriteLine("Warning: Cannot apply filters - CollectionView is null");
                     return;
                 }
 
                 var titleFilter = TitleFilterBox?.Text?.ToLower() ?? "";
                 var titleIdFilter = TitleIdFilterBox?.Text?.ToLower() ?? "";
-                Debug.WriteLine($"Title filter: '{titleFilter}', TitleId filter: '{titleIdFilter}'");
+                // Debug.WriteLine($"Title filter: '{titleFilter}', TitleId filter: '{titleIdFilter}'");
 
                 view.Filter = obj =>
                 {
@@ -187,20 +187,20 @@ namespace AuroraAssetEditor.Controls
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in ApplyFilters: {ex.Message}");
+                // Debug.WriteLine($"Error in ApplyFilters: {ex.Message}");
             }
-            Debug.WriteLine("=== Filters applied ===\n");
+            // Debug.WriteLine("=== Filters applied ===\n");
         }
 
         private void ItemListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Debug.WriteLine("\n=== Selection Changed ===");
+            // Debug.WriteLine("\n=== Selection Changed ===");
             if (e.AddedItems.Count > 0 && e.AddedItems[0] is FolderInfo selected)
             {
-                Debug.WriteLine($"Selected item: {selected.GameName}");
+                // Debug.WriteLine($"Selected item: {selected.GameName}");
             }
             SelectionChanged?.Invoke(this, e);
-            Debug.WriteLine("=== Selection Change Handled ===\n");
+            // Debug.WriteLine("=== Selection Change Handled ===\n");
         }
 
         private void GridViewColumnHeader_Click(object sender, RoutedEventArgs e)

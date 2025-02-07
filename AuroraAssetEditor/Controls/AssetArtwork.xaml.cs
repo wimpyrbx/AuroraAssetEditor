@@ -12,7 +12,9 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using AuroraAssetEditor;
 using AuroraAssetEditor.Controls;
-
+using System.Windows.Threading;
+using AuroraAssetEditor.Helpers;
+using System.Diagnostics;
 namespace AuroraAssetEditor.Controls
 {
     public partial class AssetArtwork : UserControl
@@ -58,7 +60,12 @@ namespace AuroraAssetEditor.Controls
                 new PropertyMetadata(null, OnImageSourceChanged));
 
         private readonly Dictionary<ImageType, List<string>> _imagePaths = new Dictionary<ImageType, List<string>>();
+        private readonly Dictionary<ImageType, List<string>> _originalAssetPaths = new Dictionary<ImageType, List<string>>();
         private readonly Dictionary<ImageType, int> _currentIndices = new Dictionary<ImageType, int>();
+        private DateTime _lastClick = DateTime.MinValue;
+        private Border _lastClickedBorder = null;
+        private Dictionary<ImageType, string> _currentImagePaths = new Dictionary<ImageType, string>();
+        private readonly Dictionary<ImageType, Border> _imageBorders = new Dictionary<ImageType, Border>();
 
         public Thickness ImageSpacing
         {
@@ -200,15 +207,25 @@ namespace AuroraAssetEditor.Controls
             MainGrid.DragEnter += OnDragEnter;
             MainGrid.Drop += OnDrop;
 
-            // Initialize image collections
+            // Initialize image collections for all types
             foreach (ImageType type in Enum.GetValues(typeof(ImageType)))
             {
-                if (type < ImageType.Screenshot1) // Only for non-screenshot types
+                _imagePaths[type] = new List<string>();
+                _originalAssetPaths[type] = new List<string>();
+                _currentIndices[type] = 0;
+
+                // Store reference to border for each type
+                var image = FindName($"{type}Image") as Image;
+                var border = image?.Parent as Border;
+                if (border != null)
                 {
-                    _imagePaths[type] = new List<string>();
-                    _currentIndices[type] = 0;
+                    _imageBorders[type] = border;
                 }
             }
+
+            // Ensure base directories exist
+            Directory.CreateDirectory("localassets/thumbs");
+            Directory.CreateDirectory("localassets/fullsize");
         }
 
         private static void OnImageSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -220,6 +237,10 @@ namespace AuroraAssetEditor.Controls
             if (image != null)
             {
                 image.Source = e.NewValue as ImageSource;
+                
+                // Update border color when image source changes
+                var type = (ImageType)Enum.Parse(typeof(ImageType), imageName.Replace("Image", ""));
+                control.UpdateBorderColor(type, e.NewValue as ImageSource);
             }
         }
 
@@ -303,69 +324,88 @@ namespace AuroraAssetEditor.Controls
 
         public void ClearAll()
         {
+            _currentImagePaths.Clear();
             foreach (var type in _imagePaths.Keys.ToList())
             {
-                _imagePaths[type].Clear();
-                _currentIndices[type] = 0;
-                UpdateCounter(type);
+                ClearType(type);
             }
-
-            BannerSource = null;
-            IconSource = null;
-            BoxartSource = null;
-            BackgroundSource = null;
-            Screenshot1Source = null;
-            Screenshot2Source = null;
-            Screenshot3Source = null;
-            Screenshot4Source = null;
-            Screenshot5Source = null;
         }
 
         public void SetDirectImage(string imagePath, ImageType type)
         {
             try
             {
-                if (!File.Exists(imagePath)) return;
+                if (!File.Exists(imagePath))
+                {
+                    return;
+                }
+
+                // Store the current image path
+                _currentImagePaths[type] = imagePath;
+
+                // Create URI - if path is relative, keep it relative
+                Uri uri;
+                if (Path.IsPathRooted(imagePath))
+                {
+                    uri = new Uri(imagePath, UriKind.Absolute);
+                }
+                else
+                {
+                    uri = new Uri(imagePath, UriKind.Relative);
+                }
 
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.UriSource = new Uri(imagePath);
+                bitmap.UriSource = uri;
                 bitmap.EndInit();
                 bitmap.Freeze(); // Make it thread-safe
 
                 // Update UI on the UI thread
                 Dispatcher.Invoke(() =>
                 {
-                    switch (type)
+                    try
                     {
-                        case ImageType.Banner:
-                            BannerSource = bitmap;
-                            break;
-                        case ImageType.Icon:
-                            IconSource = bitmap;
-                            break;
-                        case ImageType.Boxart:
-                            BoxartSource = bitmap;
-                            break;
-                        case ImageType.Background:
-                            BackgroundSource = bitmap;
-                            break;
-                        case ImageType.Screenshot1:
-                            Screenshot1Source = bitmap;
-                            break;
-                        case ImageType.Screenshot2:
-                            Screenshot2Source = bitmap;
-                            break;
-                        case ImageType.Screenshot3:
-                            Screenshot3Source = bitmap;
-                            break;
-                        case ImageType.Screenshot4:
-                            Screenshot4Source = bitmap;
-                            break;
-                        case ImageType.Screenshot5:
-                            Screenshot5Source = bitmap;
-                            break;
+                        // Store the bitmap before setting the source
+                        ImageSource oldSource = GetImageSourceForType(type);
+                        
+                        switch (type)
+                        {
+                            case ImageType.Banner:
+                                BannerSource = bitmap;
+                                break;
+                            case ImageType.Icon:
+                                IconSource = bitmap;
+                                break;
+                            case ImageType.Boxart:
+                                BoxartSource = bitmap;
+                                break;
+                            case ImageType.Background:
+                                BackgroundSource = bitmap;
+                                break;
+                            case ImageType.Screenshot1:
+                                Screenshot1Source = bitmap;
+                                break;
+                            case ImageType.Screenshot2:
+                                Screenshot2Source = bitmap;
+                                break;
+                            case ImageType.Screenshot3:
+                                Screenshot3Source = bitmap;
+                                break;
+                            case ImageType.Screenshot4:
+                                Screenshot4Source = bitmap;
+                                break;
+                            case ImageType.Screenshot5:
+                                Screenshot5Source = bitmap;
+                                break;
+                        }
+
+                        // Explicitly update border color after setting the source
+                        UpdateBorderColor(type, bitmap);
+                    }
+                    catch (Exception ex)
+                    {
+                        MainWindow.SaveError(ex);
                     }
                 });
             }
@@ -375,11 +415,20 @@ namespace AuroraAssetEditor.Controls
             }
         }
 
-        public void SetAssetImage(string assetPath, ImageType type)
+        private string ExtractFullSizeImage(string assetPath, ImageType type, string titleId)
         {
             try
             {
-                if (!File.Exists(assetPath)) return;
+                // Create assets directory if it doesn't exist
+                var assetsDir = Path.Combine("localassets", "fullsize", titleId);
+                Directory.CreateDirectory(assetsDir);
+
+                // Check if we already have the extracted image
+                var outputPath = Path.Combine(assetsDir, $"{type}.png");
+                if (File.Exists(outputPath))
+                {
+                    return outputPath;
+                }
 
                 var assetBytes = File.ReadAllBytes(assetPath);
                 var asset = new AuroraAsset.AssetFile(assetBytes);
@@ -418,52 +467,220 @@ namespace AuroraAssetEditor.Controls
 
                 if (image != null)
                 {
-                    using (var ms = new MemoryStream())
-                    {
-                        image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                        ms.Position = 0;
-                        var bitmap = new BitmapImage();
-                        bitmap.BeginInit();
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                        bitmap.StreamSource = ms;
-                        bitmap.EndInit();
-                        bitmap.Freeze(); // Make it thread-safe
+                    image.Save(outputPath, System.Drawing.Imaging.ImageFormat.Png);
+                    return outputPath;
+                }
+            }
+            catch (Exception ex)
+            {
+                MainWindow.SaveError(ex);
+            }
+            return null;
+        }
 
-                        // Update UI on the UI thread
-                        Dispatcher.Invoke(() =>
+        private string CreateThumbnail(System.Drawing.Image image, ImageType type, string titleId)
+        {
+            try
+            {
+                var thumbsDir = Path.Combine("localassets", "thumbs", titleId);
+                Directory.CreateDirectory(thumbsDir);
+                var thumbPath = Path.Combine(thumbsDir, $"{type}.png");
+
+                using (var thumbnail = new System.Drawing.Bitmap(image))
+                {
+                    System.Drawing.Image resizedImage;
+                    
+                    if (type == ImageType.Boxart)
+                    {
+                        // Apply smoothing for boxart
+                        using (var smoothed = new System.Drawing.Bitmap(thumbnail.Width, thumbnail.Height))
                         {
-                            switch (type)
+                            using (var g = System.Drawing.Graphics.FromImage(smoothed))
                             {
-                                case ImageType.Banner:
-                                    BannerSource = bitmap;
-                                    break;
-                                case ImageType.Icon:
-                                    IconSource = bitmap;
-                                    break;
-                                case ImageType.Boxart:
-                                    BoxartSource = bitmap;
-                                    break;
-                                case ImageType.Background:
-                                    BackgroundSource = bitmap;
-                                    break;
-                                case ImageType.Screenshot1:
-                                    Screenshot1Source = bitmap;
-                                    break;
-                                case ImageType.Screenshot2:
-                                    Screenshot2Source = bitmap;
-                                    break;
-                                case ImageType.Screenshot3:
-                                    Screenshot3Source = bitmap;
-                                    break;
-                                case ImageType.Screenshot4:
-                                    Screenshot4Source = bitmap;
-                                    break;
-                                case ImageType.Screenshot5:
-                                    Screenshot5Source = bitmap;
-                                    break;
+                                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                g.DrawImage(thumbnail, 0, 0, thumbnail.Width, thumbnail.Height);
                             }
-                        });
+                            resizedImage = new System.Drawing.Bitmap(smoothed, new System.Drawing.Size(64, 64));
+                        }
                     }
+                    else if (type == ImageType.Icon)
+                    {
+                        resizedImage = new System.Drawing.Bitmap(thumbnail, new System.Drawing.Size(128, 128));
+                    }
+                    else
+                    {
+                        resizedImage = new System.Drawing.Bitmap(thumbnail, new System.Drawing.Size(64, 64));
+                    }
+
+                    using (resizedImage)
+                    {
+                        resizedImage.Save(thumbPath, System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                }
+
+                return thumbPath;
+            }
+            catch (Exception ex)
+            {
+                MainWindow.SaveError(ex);
+                return null;
+            }
+        }
+
+        public void SetAssetImage(string assetPath, ImageType type)
+        {
+            try
+            {
+                if (!File.Exists(assetPath)) return;
+
+                // Store the original asset path for later use
+                if (!_originalAssetPaths.ContainsKey(type))
+                {
+                    _originalAssetPaths[type] = new List<string>();
+                }
+                if (!_originalAssetPaths[type].Contains(assetPath))
+                {
+                    _originalAssetPaths[type].Add(assetPath);
+                }
+
+                var assetBytes = File.ReadAllBytes(assetPath);
+                var asset = new AuroraAsset.AssetFile(assetBytes);
+
+                System.Drawing.Image image = null;
+                switch (type)
+                {
+                    case ImageType.Banner:
+                        image = asset.HasIconBanner ? asset.GetBanner() : null;
+                        break;
+                    case ImageType.Icon:
+                        image = asset.HasIconBanner ? asset.GetIcon() : null;
+                        break;
+                    case ImageType.Boxart:
+                        image = asset.HasBoxArt ? asset.GetBoxart() : null;
+                        break;
+                    case ImageType.Background:
+                        image = asset.HasBackground ? asset.GetBackground() : null;
+                        break;
+                    case ImageType.Screenshot1:
+                    case ImageType.Screenshot2:
+                    case ImageType.Screenshot3:
+                    case ImageType.Screenshot4:
+                    case ImageType.Screenshot5:
+                        if (asset.HasScreenshots)
+                        {
+                            var screenshots = asset.GetScreenshots();
+                            var index = (int)type - (int)ImageType.Screenshot1;
+                            if (screenshots.Length > index)
+                            {
+                                image = screenshots[index];
+                            }
+                        }
+                        break;
+                }
+
+                if (image != null)
+                {
+                    var titleId = GlobalState.CurrentGame?.TitleId ?? "unknown";
+                    var hash = AssetCache.CalculateFileHash(assetPath);
+                    var assetType = type.ToString();
+
+                    // Ensure directories exist
+                    Directory.CreateDirectory(Path.Combine("localassets", "fullsize", titleId));
+                    Directory.CreateDirectory(Path.Combine("localassets", "thumbs", titleId));
+
+                    // Extract full-size image
+                    var fullSizePath = AssetCache.GetFullsizePath(titleId, assetType, hash);
+                    if (!File.Exists(fullSizePath))
+                    {
+                        using (var fullSizeImage = new System.Drawing.Bitmap(image))
+                        {
+                            fullSizeImage.Save(fullSizePath, System.Drawing.Imaging.ImageFormat.Png);
+                        }
+                    }
+
+                    // Create thumbnail
+                    var thumbPath = AssetCache.GetThumbPath(titleId, assetType, hash);
+                    if (!File.Exists(thumbPath))
+                    {
+                        using (var thumbnail = new System.Drawing.Bitmap(image))
+                        {
+                            System.Drawing.Image resizedImage;
+                            
+                            if (type == ImageType.Boxart)
+                            {
+                                // Apply smoothing for boxart
+                                using (var smoothed = new System.Drawing.Bitmap(thumbnail.Width, thumbnail.Height))
+                                {
+                                    using (var g = System.Drawing.Graphics.FromImage(smoothed))
+                                    {
+                                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                                        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                        g.DrawImage(thumbnail, 0, 0, thumbnail.Width, thumbnail.Height);
+                                    }
+                                    resizedImage = new System.Drawing.Bitmap(smoothed, new System.Drawing.Size(64, 64));
+                                }
+                            }
+                            else if (type == ImageType.Icon)
+                            {
+                                resizedImage = new System.Drawing.Bitmap(thumbnail, new System.Drawing.Size(128, 128));
+                            }
+                            else
+                            {
+                                resizedImage = new System.Drawing.Bitmap(thumbnail, new System.Drawing.Size(64, 64));
+                            }
+
+                            using (resizedImage)
+                            {
+                                resizedImage.Save(thumbPath, System.Drawing.Imaging.ImageFormat.Png);
+                            }
+                        }
+                    }
+
+                    // Load the thumbnail for display
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.UriSource = new Uri(thumbPath, UriKind.Relative);
+                    bitmap.EndInit();
+                    bitmap.Freeze(); // Make it thread-safe
+
+                    // Update UI on the UI thread
+                    Dispatcher.Invoke(() =>
+                    {
+                        switch (type)
+                        {
+                            case ImageType.Banner:
+                                BannerSource = bitmap;
+                                break;
+                            case ImageType.Icon:
+                                IconSource = bitmap;
+                                break;
+                            case ImageType.Boxart:
+                                BoxartSource = bitmap;
+                                break;
+                            case ImageType.Background:
+                                BackgroundSource = bitmap;
+                                break;
+                            case ImageType.Screenshot1:
+                                Screenshot1Source = bitmap;
+                                break;
+                            case ImageType.Screenshot2:
+                                Screenshot2Source = bitmap;
+                                break;
+                            case ImageType.Screenshot3:
+                                Screenshot3Source = bitmap;
+                                break;
+                            case ImageType.Screenshot4:
+                                Screenshot4Source = bitmap;
+                                break;
+                            case ImageType.Screenshot5:
+                                Screenshot5Source = bitmap;
+                                break;
+                        }
+                    });
                 }
             }
             catch (Exception ex)
@@ -475,6 +692,9 @@ namespace AuroraAssetEditor.Controls
         public void SetImage(string path, ImageType type)
         {
             if (string.IsNullOrEmpty(path)) return;
+
+            // Clear existing images of this type first
+            ClearType(type);
 
             var extension = Path.GetExtension(path)?.ToLowerInvariant();
             if (extension == ".asset")
@@ -509,40 +729,135 @@ namespace AuroraAssetEditor.Controls
 
         private void OnDrop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
-                var loadingOverlay = FindName("LoadingOverlay") as Border;
-                
-                // Show loading overlay on UI thread immediately
-                Dispatcher.Invoke(() => 
-                {
-                    if (loadingOverlay != null)
-                    {
-                        loadingOverlay.Visibility = Visibility.Visible;
-                    }
-                });
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
 
-                // Process files on background thread
-                Task.Run(() =>
+            var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var loadingOverlay = FindName("LoadingOverlay") as Border;
+
+            // Get the drop target
+            var dropTarget = e.OriginalSource as FrameworkElement;
+            ImageType? targetType = null;
+
+            // Find the Border control that was the target
+            while (dropTarget != null && !(dropTarget is Border))
+            {
+                dropTarget = VisualTreeHelper.GetParent(dropTarget) as FrameworkElement;
+            }
+
+            if (dropTarget is Border border && border.Tag is string imageTypeStr)
+            {
+                targetType = (ImageType)Enum.Parse(typeof(ImageType), imageTypeStr);
+            }
+
+            // Ensure loading overlay is shown immediately
+            if (loadingOverlay != null)
+            {
+                loadingOverlay.Dispatcher.Invoke(() => 
                 {
-                    try 
+                    loadingOverlay.Visibility = Visibility.Visible;
+                }, System.Windows.Threading.DispatcherPriority.Send);
+            }
+
+            // Process files on background thread
+            Task.Run(() =>
+            {
+                try 
+                {
+                    // If it's a single file and we have a target container, try direct placement
+                    if (paths.Length == 1 && targetType.HasValue && IsValidImageFile(paths[0]))
                     {
+                        if (IsImageMatchingContainerSize(paths[0], targetType.Value))
+                        {
+                            // Process single file for target container
+                            ProcessSingleFileForTarget(paths[0], targetType.Value);
+                        }
+                        else
+                        {
+                            // Fall back to normal processing if resolution doesn't match
+                            ProcessDroppedFiles(paths);
+                        }
+                    }
+                    else
+                    {
+                        // Multiple files or no target - use normal processing
                         ProcessDroppedFiles(paths);
                     }
-                    finally 
+                }
+                finally 
+                {
+                    // Hide overlay on UI thread when done
+                    if (loadingOverlay != null)
                     {
-                        // Hide overlay on UI thread when done
-                        Dispatcher.Invoke(() => 
+                        loadingOverlay.Dispatcher.Invoke(() => 
                         {
-                            if (loadingOverlay != null)
-                            {
-                                loadingOverlay.Visibility = Visibility.Collapsed;
-                            }
+                            loadingOverlay.Visibility = Visibility.Collapsed;
                         });
                     }
-                });
+                }
+            });
+        }
+
+        private bool IsValidImageFile(string path)
+        {
+            var extension = Path.GetExtension(path)?.ToLowerInvariant();
+            return extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp";
+        }
+
+        private bool IsImageMatchingContainerSize(string imagePath, ImageType targetType)
+        {
+            try
+            {
+                using (var image = System.Drawing.Image.FromFile(imagePath))
+                {
+                    // Define expected aspect ratios and size ranges for each type
+                    switch (targetType)
+                    {
+                        case ImageType.Banner:
+                            return IsAspectRatioMatching(image, 35, 8, 0.1f); // Banner is 35:8
+                        case ImageType.Icon:
+                            return IsAspectRatioMatching(image, 1, 1, 0.1f); // Icon is square
+                        case ImageType.Boxart:
+                            return IsAspectRatioMatching(image, 45, 30, 0.1f); // Boxart is 45:30
+                        case ImageType.Background:
+                            return IsAspectRatioMatching(image, 48, 27, 0.1f); // Background is 48:27
+                        case ImageType.Screenshot1:
+                        case ImageType.Screenshot2:
+                        case ImageType.Screenshot3:
+                        case ImageType.Screenshot4:
+                        case ImageType.Screenshot5:
+                            return IsAspectRatioMatching(image, 16, 9, 0.1f); // Screenshots are 16:9
+                        default:
+                            return false;
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                MainWindow.SaveError(ex);
+                return false;
+            }
+        }
+
+        private bool IsAspectRatioMatching(System.Drawing.Image image, float expectedWidth, float expectedHeight, float tolerance)
+        {
+            float expectedRatio = expectedWidth / expectedHeight;
+            float actualRatio = (float)image.Width / image.Height;
+            return Math.Abs(actualRatio - expectedRatio) <= tolerance;
+        }
+
+        private void ProcessSingleFileForTarget(string file, ImageType targetType)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Clear existing images of this type
+                ClearType(targetType);
+
+                // Set the image directly
+                SetImage(file, targetType);
+                
+                // Update border color
+                UpdateBorderColor(targetType, GetImageSourceForType(targetType));
+            });
         }
 
         private void ProcessDroppedFiles(string[] paths)
@@ -582,77 +897,79 @@ namespace AuroraAssetEditor.Controls
                     var type = typeGroup.Key.Value;
                     var typeFiles = typeGroup.Value;
 
+                    // Clear existing images of this type
+                    ClearType(type);
+
                     // Handle screenshots differently - only take the last file for each screenshot position
                     if (type >= ImageType.Screenshot1)
                     {
-                        // Clear the specific screenshot
-                        switch (type)
-                        {
-                            case ImageType.Screenshot1:
-                                Screenshot1Source = null;
-                                break;
-                            case ImageType.Screenshot2:
-                                Screenshot2Source = null;
-                                break;
-                            case ImageType.Screenshot3:
-                                Screenshot3Source = null;
-                                break;
-                            case ImageType.Screenshot4:
-                                Screenshot4Source = null;
-                                break;
-                            case ImageType.Screenshot5:
-                                Screenshot5Source = null;
-                                break;
-                        }
-
                         // Take only the last file for this screenshot position
                         if (typeFiles.Any())
                         {
                             var file = typeFiles.Last();
                             SetImage(file, type);
+                            // Update border color after setting the image
+                            UpdateBorderColor(type, GetImageSourceForType(type));
                         }
                     }
-                    else // Handle non-screenshot types
+                    else // Handle non-screenshot types that support navigation
                     {
-                        _imagePaths[type].Clear();
-                        _currentIndices[type] = 0;
-                        
-                        // Clear the image source
-                        switch (type)
+                        // Ensure the type exists in the dictionary
+                        if (!_imagePaths.ContainsKey(type))
                         {
-                            case ImageType.Banner:
-                                BannerSource = null;
-                                break;
-                            case ImageType.Icon:
-                                IconSource = null;
-                                break;
-                            case ImageType.Boxart:
-                                BoxartSource = null;
-                                break;
-                            case ImageType.Background:
-                                BackgroundSource = null;
-                                break;
+                            _imagePaths[type] = new List<string>();
+                            _currentIndices[type] = 0;
                         }
 
                         // Sort files to ensure consistent ordering
                         typeFiles.Sort();
 
-                        // Process the new files
+                        // Process each file for this type
                         foreach (var file in typeFiles)
                         {
-                            SetImage(file, type);
+                            var extension = Path.GetExtension(file)?.ToLowerInvariant();
+                            if (extension == ".asset")
+                            {
+                                SetAssetImage(file, type);
+                            }
+                            else
+                            {
+                                if (!_imagePaths[type].Contains(file))
+                                {
+                                    _imagePaths[type].Add(file);
+                                }
+                            }
                         }
 
-                        // Ensure we're showing the first image
+                        // Update navigation and display first image if we have any images
                         if (_imagePaths[type].Any())
                         {
                             _currentIndices[type] = 0;
                             LoadImageAtCurrentIndex(type);
                             UpdateCounter(type);
+                            // Update border color after loading the image
+                            UpdateBorderColor(type, GetImageSourceForType(type));
                         }
                     }
                 }
             });
+        }
+
+        private ImageSource GetImageSourceForType(ImageType type)
+        {
+            switch (type)
+            {
+                case ImageType.Banner: return BannerSource;
+                case ImageType.Icon: return IconSource;
+                case ImageType.Boxart: return BoxartSource;
+                case ImageType.Background: return BackgroundSource;
+                case ImageType.Screenshot1: return Screenshot1Source;
+                case ImageType.Screenshot2: return Screenshot2Source;
+                case ImageType.Screenshot3: return Screenshot3Source;
+                case ImageType.Screenshot4: return Screenshot4Source;
+                case ImageType.Screenshot5: return Screenshot5Source;
+                default: return null;
+            }
         }
 
         private void ProcessSingleFile(string file, Dictionary<ImageType?, List<string>> filesByType)
@@ -713,186 +1030,43 @@ namespace AuroraAssetEditor.Controls
             return null;
         }
 
-        private DateTime _lastClick = DateTime.MinValue;
-        private Border _lastClickedBorder = null;
-
-        private bool IsAssetThumbnail(ImageSource source)
+        private bool IsImageThumbnail(ImageSource source)
         {
+            if (source == null) return true; // Consider null (no image) as valid state
             if (source is BitmapImage bitmapImage && bitmapImage.UriSource != null)
             {
                 string uriString = bitmapImage.UriSource.ToString();
-                return uriString.Contains("thumbs/local/") || uriString.Contains("thumbs\\local\\");
+                
+                // Check if the path is relative or absolute
+                string fullPath;
+                if (bitmapImage.UriSource.IsAbsoluteUri)
+                {
+                    fullPath = bitmapImage.UriSource.LocalPath;
+                }
+                else
+                {
+                    fullPath = Path.GetFullPath(uriString);
+                }
+
+                // Normalize path for comparison
+                fullPath = fullPath.Replace('\\', '/');
+                
+                // Image is considered a thumbnail if:
+                // 1. It's in the localassets folder AND
+                // 2. It's in the thumbs subfolder
+                return fullPath.Contains("/localassets/") && fullPath.Contains("/thumbs/");
             }
             return false;
         }
 
-        private ImageSource GetFullSizeAssetImage(string thumbPath, string imageType)
+        private void UpdateBorderColor(ImageType type, ImageSource source)
         {
-            try
+            if (_imageBorders.TryGetValue(type, out var border))
             {
-                // Convert relative path to absolute if needed
-                if (!Path.IsPathRooted(thumbPath))
-                {
-                    thumbPath = Path.GetFullPath(thumbPath);
-                }
-
-                // Extract title ID and asset type from thumb path (format: thumbs/local/[titleId]/[type]-[hash].png)
-                var pathParts = thumbPath.Split(new[] { Path.DirectorySeparatorChar, '/' }, StringSplitOptions.RemoveEmptyEntries);
-                var titleIdIndex = Array.IndexOf(pathParts, "local") + 1;
-                if (titleIdIndex <= 0 || titleIdIndex >= pathParts.Length) return null;
-                
-                var titleId = pathParts[titleIdIndex];
-                var fileNameParts = Path.GetFileNameWithoutExtension(pathParts.Last()).Split('-');
-                if (fileNameParts.Length < 2) return null;
-                
-                var hash = fileNameParts[1];
-
-                // Find the original asset file in the game folder
-                var gameFolder = Path.Combine(
-                    Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(thumbPath))), // Go up 3 levels from thumbs/local/[titleId]
-                    titleId);
-
-                if (!Directory.Exists(gameFolder)) return null;
-
-                string assetPattern = "";
-                switch (imageType)
-                {
-                    case "Banner":
-                    case "Icon":
-                        assetPattern = "GL*.asset";
-                        break;
-                    case "Boxart":
-                        assetPattern = "GC*.asset";
-                        break;
-                    case "Background":
-                        assetPattern = "BK*.asset";
-                        break;
-                    case "Screenshot1":
-                    case "Screenshot2":
-                    case "Screenshot3":
-                    case "Screenshot4":
-                    case "Screenshot5":
-                        assetPattern = "SS*.asset";
-                        break;
-                }
-
-                var assetFiles = Directory.GetFiles(gameFolder, assetPattern);
-                foreach (var assetFile in assetFiles)
-                {
-                    var assetBytes = File.ReadAllBytes(assetFile);
-                    var asset = new AuroraAsset.AssetFile(assetBytes);
-
-                    System.Drawing.Image image = null;
-                    switch (imageType)
-                    {
-                        case "Banner":
-                            image = asset.HasIconBanner ? asset.GetBanner() : null;
-                            break;
-                        case "Icon":
-                            image = asset.HasIconBanner ? asset.GetIcon() : null;
-                            break;
-                        case "Boxart":
-                            image = asset.HasBoxArt ? asset.GetBoxart() : null;
-                            break;
-                        case "Background":
-                            image = asset.HasBackground ? asset.GetBackground() : null;
-                            break;
-                        case "Screenshot1":
-                        case "Screenshot2":
-                        case "Screenshot3":
-                        case "Screenshot4":
-                        case "Screenshot5":
-                            if (asset.HasScreenshots)
-                            {
-                                var screenshots = asset.GetScreenshots();
-                                var index = int.Parse(imageType.Substring(10)) - 1;
-                                if (screenshots.Length > index)
-                                {
-                                    image = screenshots[index];
-                                }
-                            }
-                            break;
-                    }
-
-                    if (image != null)
-                    {
-                        using (var ms = new MemoryStream())
-                        {
-                            image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                            ms.Position = 0;
-                            var bitmap = new BitmapImage();
-                            bitmap.BeginInit();
-                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                            bitmap.StreamSource = ms;
-                            bitmap.EndInit();
-                            bitmap.Freeze();
-                            return bitmap;
-                        }
-                    }
-                }
+                border.BorderBrush = IsImageThumbnail(source) ? 
+                    (SolidColorBrush)FindResource("DefaultBorderBrush") : 
+                    new SolidColorBrush(Colors.Orange);
             }
-            catch (Exception ex)
-            {
-                MainWindow.SaveError(ex);
-            }
-            return null;
-        }
-
-        private List<ImageSource> GetFullSizeScreenshots(string thumbPath)
-        {
-            try
-            {
-                // Extract title ID from thumb path
-                var pathParts = thumbPath.Split('/');
-                var titleId = pathParts[pathParts.Length - 2];
-
-                // Find the original screenshots asset file
-                var gameFolder = Path.Combine(
-                    Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(thumbPath))), // Go up 3 levels
-                    titleId);
-
-                var screenshotFiles = Directory.GetFiles(gameFolder, "SS*.asset");
-                foreach (var assetFile in screenshotFiles)
-                {
-                    var assetBytes = File.ReadAllBytes(assetFile);
-                    var asset = new AuroraAsset.AssetFile(assetBytes);
-
-                    if (asset.HasScreenshots)
-                    {
-                        var screenshots = asset.GetScreenshots();
-                        var result = new List<ImageSource>();
-
-                        foreach (var screenshot in screenshots)
-                        {
-                            if (screenshot != null)
-                            {
-                                using (var ms = new MemoryStream())
-                                {
-                                    screenshot.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                                    ms.Position = 0;
-                                    var bitmap = new BitmapImage();
-                                    bitmap.BeginInit();
-                                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                                    bitmap.StreamSource = ms;
-                                    bitmap.EndInit();
-                                    bitmap.Freeze();
-                                    result.Add(bitmap);
-                                }
-                            }
-                        }
-
-                        if (result.Any())
-                        {
-                            return result;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MainWindow.SaveError(ex);
-            }
-            return null;
         }
 
         private void OnImageContainerMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -904,215 +1078,123 @@ namespace AuroraAssetEditor.Controls
                 {
                     if (border.Tag is string imageType)
                     {
-                        ImageSource imageSource = null;
-                        List<ImageSource> imageSources = null;
-                        string title = imageType;
-                        int currentIndex = 0;
+                        var type = (ImageType)Enum.Parse(typeof(ImageType), imageType);
+                        string imagePath = null;
 
-                        // Handle screenshots differently
-                        if (imageType.StartsWith("Screenshot"))
+                        // Get the current image source
+                        ImageSource currentSource = null;
+                        switch (type)
                         {
-                            // Create a list of all available screenshot sources
-                            imageSources = new List<ImageSource>();
-                            
-                            // Check if we're viewing thumbnails
-                            bool usingThumbs = false;
-                            string thumbPath = null;
-                            
-                            // Add each non-null screenshot to the list and check if they're thumbnails
-                            if (Screenshot1Source != null)
-                            {
-                                if (imageType == "Screenshot1")
-                                {
-                                    currentIndex = imageSources.Count;
-                                    if (IsAssetThumbnail(Screenshot1Source))
-                                    {
-                                        usingThumbs = true;
-                                        var uri = ((BitmapImage)Screenshot1Source).UriSource;
-                                        thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                    }
-                                }
-                                imageSources.Add(Screenshot1Source);
-                            }
-                            if (Screenshot2Source != null)
-                            {
-                                if (imageType == "Screenshot2")
-                                {
-                                    currentIndex = imageSources.Count;
-                                    if (IsAssetThumbnail(Screenshot2Source))
-                                    {
-                                        usingThumbs = true;
-                                        var uri = ((BitmapImage)Screenshot2Source).UriSource;
-                                        thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                    }
-                                }
-                                imageSources.Add(Screenshot2Source);
-                            }
-                            if (Screenshot3Source != null)
-                            {
-                                if (imageType == "Screenshot3")
-                                {
-                                    currentIndex = imageSources.Count;
-                                    if (IsAssetThumbnail(Screenshot3Source))
-                                    {
-                                        usingThumbs = true;
-                                        var uri = ((BitmapImage)Screenshot3Source).UriSource;
-                                        thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                    }
-                                }
-                                imageSources.Add(Screenshot3Source);
-                            }
-                            if (Screenshot4Source != null)
-                            {
-                                if (imageType == "Screenshot4")
-                                {
-                                    currentIndex = imageSources.Count;
-                                    if (IsAssetThumbnail(Screenshot4Source))
-                                    {
-                                        usingThumbs = true;
-                                        var uri = ((BitmapImage)Screenshot4Source).UriSource;
-                                        thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                    }
-                                }
-                                imageSources.Add(Screenshot4Source);
-                            }
-                            if (Screenshot5Source != null)
-                            {
-                                if (imageType == "Screenshot5")
-                                {
-                                    currentIndex = imageSources.Count;
-                                    if (IsAssetThumbnail(Screenshot5Source))
-                                    {
-                                        usingThumbs = true;
-                                        var uri = ((BitmapImage)Screenshot5Source).UriSource;
-                                        thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                    }
-                                }
-                                imageSources.Add(Screenshot5Source);
-                            }
-
-                            // If using thumbnails, get full-size images from asset
-                            if (usingThumbs && thumbPath != null)
-                            {
-                                var fullSizeScreenshots = GetFullSizeScreenshots(thumbPath);
-                                if (fullSizeScreenshots != null && fullSizeScreenshots.Any())
-                                {
-                                    imageSources = fullSizeScreenshots;
-                                }
-                            }
-                            
-                            title = "Screenshots";
-                        }
-                        else // Handle other image types
-                        {
-                            switch (imageType)
-                            {
-                                case "Banner":
-                                    if (_imagePaths.ContainsKey(ImageType.Banner) && _imagePaths[ImageType.Banner].Any())
-                                    {
-                                        imageSources = _imagePaths[ImageType.Banner].Select(path => 
-                                        {
-                                            var bitmap = new BitmapImage(new Uri(path));
-                                            bitmap.Freeze();
-                                            return (ImageSource)bitmap;
-                                        }).ToList();
-                                        currentIndex = _currentIndices[ImageType.Banner];
-                                    }
-                                    else
-                                    {
-                                        imageSource = BannerSource;
-                                        if (IsAssetThumbnail(imageSource))
-                                        {
-                                            var uri = ((BitmapImage)imageSource).UriSource;
-                                            var thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                            var fullSize = GetFullSizeAssetImage(thumbPath, imageType);
-                                            if (fullSize != null) imageSource = fullSize;
-                                        }
-                                    }
-                                    break;
-                                case "Icon":
-                                    if (_imagePaths.ContainsKey(ImageType.Icon) && _imagePaths[ImageType.Icon].Any())
-                                    {
-                                        imageSources = _imagePaths[ImageType.Icon].Select(path => 
-                                        {
-                                            var bitmap = new BitmapImage(new Uri(path));
-                                            bitmap.Freeze();
-                                            return (ImageSource)bitmap;
-                                        }).ToList();
-                                        currentIndex = _currentIndices[ImageType.Icon];
-                                    }
-                                    else
-                                    {
-                                        imageSource = IconSource;
-                                        if (IsAssetThumbnail(imageSource))
-                                        {
-                                            var uri = ((BitmapImage)imageSource).UriSource;
-                                            var thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                            var fullSize = GetFullSizeAssetImage(thumbPath, imageType);
-                                            if (fullSize != null) imageSource = fullSize;
-                                        }
-                                    }
-                                    break;
-                                case "Boxart":
-                                    if (_imagePaths.ContainsKey(ImageType.Boxart) && _imagePaths[ImageType.Boxart].Any())
-                                    {
-                                        imageSources = _imagePaths[ImageType.Boxart].Select(path => 
-                                        {
-                                            var bitmap = new BitmapImage(new Uri(path));
-                                            bitmap.Freeze();
-                                            return (ImageSource)bitmap;
-                                        }).ToList();
-                                        currentIndex = _currentIndices[ImageType.Boxart];
-                                    }
-                                    else
-                                    {
-                                        imageSource = BoxartSource;
-                                        if (IsAssetThumbnail(imageSource))
-                                        {
-                                            var uri = ((BitmapImage)imageSource).UriSource;
-                                            var thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                            var fullSize = GetFullSizeAssetImage(thumbPath, imageType);
-                                            if (fullSize != null) imageSource = fullSize;
-                                        }
-                                    }
-                                    break;
-                                case "Background":
-                                    if (_imagePaths.ContainsKey(ImageType.Background) && _imagePaths[ImageType.Background].Any())
-                                    {
-                                        imageSources = _imagePaths[ImageType.Background].Select(path => 
-                                        {
-                                            var bitmap = new BitmapImage(new Uri(path));
-                                            bitmap.Freeze();
-                                            return (ImageSource)bitmap;
-                                        }).ToList();
-                                        currentIndex = _currentIndices[ImageType.Background];
-                                    }
-                                    else
-                                    {
-                                        imageSource = BackgroundSource;
-                                        if (IsAssetThumbnail(imageSource))
-                                        {
-                                            var uri = ((BitmapImage)imageSource).UriSource;
-                                            var thumbPath = uri.IsAbsoluteUri ? uri.LocalPath : uri.ToString();
-                                            var fullSize = GetFullSizeAssetImage(thumbPath, imageType);
-                                            if (fullSize != null) imageSource = fullSize;
-                                        }
-                                    }
-                                    break;
-                            }
+                            case ImageType.Banner: currentSource = BannerSource; break;
+                            case ImageType.Icon: currentSource = IconSource; break;
+                            case ImageType.Boxart: currentSource = BoxartSource; break;
+                            case ImageType.Background: currentSource = BackgroundSource; break;
+                            case ImageType.Screenshot1: currentSource = Screenshot1Source; break;
+                            case ImageType.Screenshot2: currentSource = Screenshot2Source; break;
+                            case ImageType.Screenshot3: currentSource = Screenshot3Source; break;
+                            case ImageType.Screenshot4: currentSource = Screenshot4Source; break;
+                            case ImageType.Screenshot5: currentSource = Screenshot5Source; break;
                         }
 
-                        if (imageSources != null && imageSources.Any())
+                        if (currentSource is BitmapImage bitmapImage && bitmapImage.UriSource != null)
                         {
-                            var viewer = new AuroraAssetEditor.ImageViewerWindow(imageSources, title, currentIndex, NavigationStyle);
-                            viewer.Owner = Window.GetWindow(this);
-                            viewer.ShowDialog();
-                        }
-                        else if (imageSource != null)
-                        {
-                            var viewer = new AuroraAssetEditor.ImageViewerWindow(imageSource, title, NavigationStyle);
-                            viewer.Owner = Window.GetWindow(this);
-                            viewer.ShowDialog();
+                            // Get the current path, handling both absolute and relative URIs
+                            string currentPath;
+                            if (bitmapImage.UriSource.IsAbsoluteUri)
+                            {
+                                currentPath = bitmapImage.UriSource.LocalPath;
+                            }
+                            else
+                            {
+                                currentPath = bitmapImage.UriSource.OriginalString;
+                            }
+
+                            // Debug.WriteLine($"Current image path: {currentPath}");
+
+                            // Check if this is a thumbnail path
+                            if (currentPath.Contains("/thumbs/") || currentPath.Contains("\\thumbs\\"))
+                            {
+                                // Get the hash from the filename
+                                var filename = Path.GetFileNameWithoutExtension(currentPath);
+                                var hashPart = filename.Split('-').LastOrDefault();
+                                
+                                if (!string.IsNullOrEmpty(hashPart))
+                                {
+                                    // Get the titleId from the path
+                                    var pathParts = currentPath.Split(new[] { "thumbs" }, StringSplitOptions.RemoveEmptyEntries);
+                                    if (pathParts.Length > 1)
+                                    {
+                                        var titleIdPart = pathParts[1].Trim('\\', '/').Split('\\', '/')[0];
+                                        
+                                        // Use AssetCache to get the full-size path
+                                        imagePath = AssetCache.GetFullsizePath(titleIdPart, type.ToString(), hashPart);
+                                        // Debug.WriteLine($"Using cached full-size path: {imagePath}");
+                                    }
+                                }
+                            }
+                            else if (_currentImagePaths.TryGetValue(type, out string dragDropPath))
+                            {
+                                // For drag-dropped images, use the original path
+                                imagePath = dragDropPath;
+                                // Debug.WriteLine($"Using drag-dropped image path: {imagePath}");
+                            }
+
+                            if (!string.IsNullOrEmpty(imagePath))
+                            {
+                                // Ensure we have a full path
+                                if (!Path.IsPathRooted(imagePath))
+                                {
+                                    imagePath = Path.GetFullPath(imagePath);
+                                }
+
+                                // Convert thumbs path to fullsize path
+                                if (imagePath.Contains("\\thumbs\\") || imagePath.Contains("/thumbs/"))
+                                {
+                                    imagePath = imagePath.Replace("\\thumbs\\", "\\fullsize\\")
+                                                       .Replace("/thumbs/", "/fullsize/");
+                                }
+
+                                // Debug.WriteLine($"Final image path: {imagePath}");
+
+                                if (File.Exists(imagePath))
+                                {
+                                    // Debug.WriteLine("Loading full-size image");
+                                    using (var image = System.Drawing.Image.FromFile(imagePath))
+                                    {
+                                        // Calculate dimensions maintaining aspect ratio with max width of 1200
+                                        int width = image.Width;
+                                        int height = image.Height;
+
+                                        if (width > 1200)
+                                        {
+                                            double scale = 1200.0 / width;
+                                            width = 1200;
+                                            height = (int)(height * scale);
+                                        }
+
+                                        var bitmap = new BitmapImage();
+                                        bitmap.BeginInit();
+                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                        bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                                        bitmap.EndInit();
+                                        bitmap.Freeze();
+
+                                        var viewer = new AuroraAssetEditor.ImageViewerWindow(bitmap, type.ToString(), NavigationStyle)
+                                        {
+                                            Owner = Window.GetWindow(this),
+                                            Width = width,
+                                            Height = height,
+                                            WindowStyle = WindowStyle.None,
+                                            ResizeMode = ResizeMode.NoResize
+                                        };
+                                        viewer.ShowDialog();
+                                    }
+                                }
+                                else
+                                {
+                                    // Debug.WriteLine($"Full-size image not found: {imagePath}");
+                                }
+                            }
                         }
                     }
                     _lastClick = DateTime.MinValue; // Reset after double-click
@@ -1124,6 +1206,69 @@ namespace AuroraAssetEditor.Controls
                     _lastClickedBorder = border;
                 }
             }
+        }
+
+        public void ClearType(ImageType type)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Clear the current image paths for this type
+                if (_currentImagePaths.ContainsKey(type))
+                {
+                    _currentImagePaths.Remove(type);
+                }
+
+                // Clear image collections
+                if (_imagePaths.ContainsKey(type))
+                {
+                    _imagePaths[type].Clear();
+                }
+                if (_originalAssetPaths.ContainsKey(type))
+                {
+                    _originalAssetPaths[type].Clear();
+                }
+                if (_currentIndices.ContainsKey(type))
+                {
+                    _currentIndices[type] = 0;
+                }
+
+                ImageSource nullSource = null;
+                switch (type)
+                {
+                    case ImageType.Banner:
+                        BannerSource = nullSource;
+                        UpdateCounter(type);
+                        break;
+                    case ImageType.Icon:
+                        IconSource = nullSource;
+                        UpdateCounter(type);
+                        break;
+                    case ImageType.Boxart:
+                        BoxartSource = nullSource;
+                        UpdateCounter(type);
+                        break;
+                    case ImageType.Background:
+                        BackgroundSource = nullSource;
+                        UpdateCounter(type);
+                        break;
+                    case ImageType.Screenshot1:
+                        Screenshot1Source = nullSource;
+                        break;
+                    case ImageType.Screenshot2:
+                        Screenshot2Source = nullSource;
+                        break;
+                    case ImageType.Screenshot3:
+                        Screenshot3Source = nullSource;
+                        break;
+                    case ImageType.Screenshot4:
+                        Screenshot4Source = nullSource;
+                        break;
+                    case ImageType.Screenshot5:
+                        Screenshot5Source = nullSource;
+                        break;
+                }
+                UpdateBorderColor(type, nullSource);
+            });
         }
     }
 } 

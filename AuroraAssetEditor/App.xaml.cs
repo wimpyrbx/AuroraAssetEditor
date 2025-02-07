@@ -13,7 +13,8 @@ namespace AuroraAssetEditor {
     using System.Windows.Interop;
     using System.Windows.Media;
     using System.Windows.Media.Imaging;
-    using Classes;
+    using AuroraAssetEditor.Classes;
+    using AuroraAssetEditor.Models;
 
     /// <summary>
     ///     Interaction logic for App.xaml
@@ -26,6 +27,15 @@ namespace AuroraAssetEditor {
 
         internal static readonly ImageSource WpfIcon = Imaging.CreateBitmapSourceFromHIcon(Icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
 
-        private void AppStart(object sender, StartupEventArgs e) { new MainWindow(e.Args).Show(); }
+        internal static Xbox360GameData Xbox360GameData;
+
+        private void AppStart(object sender, StartupEventArgs e)
+        {
+            // Initialize database before creating main window
+            Classes.Xbox360DB.Initialize();
+            
+            var mainWindow = new MainWindow(e.Args);
+            mainWindow.Show();
+        }
     }
 }

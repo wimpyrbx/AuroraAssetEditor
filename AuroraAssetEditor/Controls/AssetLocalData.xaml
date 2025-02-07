@@ -1,0 +1,125 @@
+<UserControl x:Class="AuroraAssetEditor.Controls.AssetLocalData"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="300">
+    <Border Background="White" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="5">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="10">
+                <!-- Header -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock x:Name="TitleIdBlock" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="TitleNameBlock" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Main Info -->
+                <Grid Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Release Date:" FontWeight="SemiBold" Grid.Row="0" Grid.Column="0" Margin="0,0,10,5"/>
+                    <TextBlock x:Name="ReleaseDateBlock" Grid.Row="0" Grid.Column="1" Margin="0,0,0,5"/>
+
+                    <TextBlock Text="Developer:" FontWeight="SemiBold" Grid.Row="1" Grid.Column="0" Margin="0,0,10,5"/>
+                    <TextBlock x:Name="DeveloperBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,5"/>
+
+                    <TextBlock Text="Publisher:" FontWeight="SemiBold" Grid.Row="2" Grid.Column="0" Margin="0,0,10,5"/>
+                    <TextBlock x:Name="PublisherBlock" Grid.Row="2" Grid.Column="1" Margin="0,0,0,5"/>
+                </Grid>
+
+                <!-- Description -->
+                <StackPanel Margin="0,0,0,15">
+                    <TextBlock x:Name="DescriptionBlock" 
+                             TextWrapping="Wrap"
+                             MaxHeight="150"
+                             FontFamily="Consolas"
+                             FontSize="11"
+                             LineHeight="16"
+                             TextTrimming="WordEllipsis"/>
+                    <TextBlock x:Name="ShowMoreBlock" 
+                             Text="[Show More]" 
+                             Foreground="Blue" 
+                             Cursor="Hand"
+                             TextDecorations="Underline"
+                             Visibility="Collapsed"
+                             MouseDown="ShowMoreBlock_MouseDown"/>
+                </StackPanel>
+
+                <!-- Related Content -->
+                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Padding="5" Margin="0,0,0,10">
+                    <StackPanel x:Name="RelatedContentPanel" Visibility="Collapsed">
+                        <TextBlock Text="Related Content:" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                        <ListView x:Name="VariantsList" 
+                                MaxHeight="200" 
+                                BorderThickness="0"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListView.Resources>
+                                <Style TargetType="ScrollBar">
+                                    <Setter Property="Width" Value="8"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type ScrollBar}">
+                                                <Grid>
+                                                    <Rectangle Width="8" Fill="#F0F0F0"/>
+                                                    <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                                        <Track.Thumb>
+                                                            <Thumb>
+                                                                <Thumb.Template>
+                                                                    <ControlTemplate>
+                                                                        <Rectangle Width="6" Fill="#C0C0C0" RadiusX="3" RadiusY="3"/>
+                                                                    </ControlTemplate>
+                                                                </Thumb.Template>
+                                                            </Thumb>
+                                                        </Track.Thumb>
+                                                    </Track>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListView.Resources>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="MediaID:" FontWeight="SemiBold" Grid.Row="0" Grid.Column="0" Margin="0,0,10,2"/>
+                                        <TextBlock Text="{Binding MediaId}" Grid.Row="0" Grid.Column="1" Margin="0,0,0,2"/>
+
+                                        <TextBlock Text="Serial:" FontWeight="SemiBold" Grid.Row="1" Grid.Column="0" Margin="0,0,10,2"/>
+                                        <TextBlock Text="{Binding Serial}" Grid.Row="1" Grid.Column="1" Margin="0,0,0,2"/>
+
+                                        <TextBlock Text="Region:" FontWeight="SemiBold" Grid.Row="2" Grid.Column="0" Margin="0,0,10,2"/>
+                                        <TextBlock Text="{Binding Region}" Grid.Row="2" Grid.Column="1" Margin="0,0,0,2"/>
+
+                                        <TextBlock Text="XEX CRC:" FontWeight="SemiBold" Grid.Row="3" Grid.Column="0" Margin="0,0,10,2"/>
+                                        <TextBlock Text="{Binding XexCrc}" Grid.Row="3" Grid.Column="1" Margin="0,0,0,2"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl> 
