@@ -1032,40 +1032,63 @@ namespace AuroraAssetEditor.Controls
 
         private bool IsImageThumbnail(ImageSource source)
         {
-            if (source == null) return true; // Consider null (no image) as valid state
+            Debug.WriteLine("\n=== IsImageThumbnail called ===");
+            if (source == null)
+            {
+                Debug.WriteLine("Source is null, returning true");
+                return true; // Consider null (no image) as valid state
+            }
+            
             if (source is BitmapImage bitmapImage && bitmapImage.UriSource != null)
             {
                 string uriString = bitmapImage.UriSource.ToString();
+                Debug.WriteLine($"URI string: {uriString}");
                 
                 // Check if the path is relative or absolute
                 string fullPath;
                 if (bitmapImage.UriSource.IsAbsoluteUri)
                 {
                     fullPath = bitmapImage.UriSource.LocalPath;
+                    Debug.WriteLine($"Absolute path: {fullPath}");
                 }
                 else
                 {
                     fullPath = Path.GetFullPath(uriString);
+                    Debug.WriteLine($"Relative path converted to: {fullPath}");
                 }
 
                 // Normalize path for comparison
                 fullPath = fullPath.Replace('\\', '/');
+                Debug.WriteLine($"Normalized path: {fullPath}");
                 
                 // Image is considered a thumbnail if:
                 // 1. It's in the localassets folder AND
                 // 2. It's in the thumbs subfolder
-                return fullPath.Contains("/localassets/") && fullPath.Contains("/thumbs/");
+                bool isThumbnail = fullPath.Contains("/localassets/") && fullPath.Contains("/thumbs/");
+                Debug.WriteLine($"Is thumbnail: {isThumbnail}");
+                return isThumbnail;
             }
+            Debug.WriteLine("Source is not a BitmapImage or has no URI, returning false");
             return false;
         }
 
         private void UpdateBorderColor(ImageType type, ImageSource source)
         {
+            Debug.WriteLine($"\n=== UpdateBorderColor called for {type} ===");
             if (_imageBorders.TryGetValue(type, out var border))
             {
-                border.BorderBrush = IsImageThumbnail(source) ? 
+                Debug.WriteLine("Found border for type");
+                bool isThumbnail = IsImageThumbnail(source);
+                var newColor = isThumbnail ? 
                     (SolidColorBrush)FindResource("DefaultBorderBrush") : 
                     new SolidColorBrush(Colors.Orange);
+                
+                Debug.WriteLine($"Setting border color to: {(isThumbnail ? "Default (Black)" : "Orange")}");
+                border.BorderBrush = newColor;
+            }
+            else
+            {
+                Debug.WriteLine("No border found for type!");
             }
         }
 
